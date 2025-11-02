@@ -1,0 +1,25 @@
+# Django Core
+Django==5.2.7
+djangorestframework==3.16.1
+django-cors-headers==4.9.0
+
+# API Documentation
+drf-spectacular==0.28.0
+
+# Variables de Entorno
+django-environ==0.11.2
+
+# Filtros
+django-filter==24.3
+
+# Utilidades
+django-extensions==3.2.3
+
+# HTTP client
+requests==2.32.3
+
+
+asgiref==3.10.0
+sqlparse==0.5.3
+tzdata==2025.2
+    
