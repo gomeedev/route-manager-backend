@@ -14,6 +14,16 @@ def empresa_default():
     )
     return empresa.id_empresa
 
+
+def rol_default():
+    rol, _ = Rol.objects.get_or_create(
+        nombre_rol="driver"
+        )
+    return rol.id_rol
+
+
+
+
 # Create your models here.
 class Rol(models.Model):
     id_rol = models.AutoField(primary_key=True)
@@ -43,7 +53,7 @@ class Usuario(models.Model):
     apellido = models.CharField(max_length=100)
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, default=empresa_default)
     telefono_movil = models.CharField(max_length=30)
-    rol = models.ForeignKey(Rol, on_delete=models.PROTECT)
+    rol = models.ForeignKey(Rol, on_delete=models.PROTECT, default=rol_default)
     tipo_documento = models.CharField(choices=TipoDocumento.choices, default=TipoDocumento.CC, max_length=30)
     documento = models.CharField(max_length=20)
     estado = models.CharField(choices=EstadoUsuario.choices, default=EstadoUsuario.ACTIVO, max_length=12)
