@@ -46,9 +46,9 @@ class Usuario(models.Model):
     rol = models.ForeignKey(Rol, on_delete=models.PROTECT)
     tipo_documento = models.CharField(choices=TipoDocumento.choices, default=TipoDocumento.CC, max_length=30)
     documento = models.CharField(max_length=20)
-    estado = models.CharField(choices=EstadoUsuario.choices, default=EstadoUsuario.ACTIVO)
+    estado = models.CharField(choices=EstadoUsuario.choices, default=EstadoUsuario.ACTIVO, max_length=12)
     fecha_registro = models.DateTimeField(default=timezone.now)
-    foto_perfil = models.ImageField(upload_to="users/profile/", blank=True, null=True)
+    foto_perfil = models.URLField(blank=True, null=True)
     fecha_actualizacion_foto = models.DateTimeField(null=True, blank=True)
     
     def __str__(self):
