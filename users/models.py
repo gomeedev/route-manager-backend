@@ -3,6 +3,17 @@ from django.db import models
 from django.utils import timezone
 from empresa.models import Empresa
 
+
+def empresa_default():
+    empresa, _ = Empresa.objects.get_or_create(
+        nombre_empresa="Servientrega",
+        defaults={
+            "nit": "860512330-3",
+            "telefono_empresa": "601 8889214"
+        }
+    )
+    return empresa.id_empresa
+
 # Create your models here.
 class Rol(models.Model):
     id_rol = models.AutoField(primary_key=True)
@@ -30,9 +41,9 @@ class Usuario(models.Model):
     correo = models.EmailField(max_length=200, unique=True)
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
-    id_empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, default=empresa_default)
     telefono_movil = models.CharField(max_length=30)
-    id_rol = models.ForeignKey(Rol, on_delete=models.PROTECT)
+    rol = models.ForeignKey(Rol, on_delete=models.PROTECT)
     tipo_documento = models.CharField(choices=TipoDocumento.choices, default=TipoDocumento.CC, max_length=30)
     documento = models.CharField(max_length=20)
     estado = models.CharField(choices=EstadoUsuario.choices, default=EstadoUsuario.ACTIVO)
