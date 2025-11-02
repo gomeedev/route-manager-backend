@@ -69,6 +69,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'drf_spectacular',
+    'empresa',
+    'users'
 ]
 
 MIDDLEWARE = [
@@ -178,7 +182,7 @@ REST_FRAMEWORK = {
 
 # Métadatos basicos del proyecto para la api
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Documentación Route Manager',
+    'TITLE': 'Documentación API de Route Manager',
     'DESCRIPTION': 'Esta es una documentación hecha automaticamente por drf_spectacular para Route Manager',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
