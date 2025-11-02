@@ -1,2 +1,37 @@
-venv
-.env
+# Entornos virtuales
+venv/
+env/
+ENV/
+.venv/
+
+# Variables de entorno
+.env*
+
+# Django
+*.log
+db.sqlite3
+media/
+staticfiles/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de configuración de Render (si los hay)
+render.yaml
+render.yml
+
+# Archivos temporales
+*.tmp
+*.temp

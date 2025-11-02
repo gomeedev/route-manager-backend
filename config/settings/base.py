@@ -11,26 +11,58 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import environ
+
+# Inicializar django-environ
+env = environ.Env(
+    DEBUG=(bool, False)
+)
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+
+
+
+
+# --- .env ---
+# Primero, si existe un .env base en el proyecto (solo para controlar ENVIRONMENT), léelo.
+base_env = BASE_DIR / ".env"
+if base_env.exists():
+    environ.Env.read_env(base_env)
+
+# Ahora obten el valor ENVIRONMENT (primero mira variable del sistema, luego .env base, si no -> 'development')
+environment = env('ENVIRONMENT', default='development')
+
+# Carga el archivo específico de entorno si existe
+env_file = BASE_DIR / f".env.{environment}"
+if env_file.exists():
+    environ.Env.read_env(env_file)
+
+
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-c3fjq+hyqy)c#$j3n2=hhasokfi(^r&n@px=vv**f#jh_e2u=('
+SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool('DEBUG', default=False)
 
-ALLOWED_HOSTS = []
+
+
+# Autorizaciòn de Cors
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,6 +72,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -71,11 +104,17 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+import pymysql
+pymysql.install_as_MySQLdb()
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': env('DB_ENGINE', default='django.db.backends.mysql'),
+        'NAME': env('DB_NAME', default='route_manager'),
+        'USER': env('DB_USER', default='root'),
+        'PASSWORD': env('DB_PASSWORD', default=''),
+        'HOST': env('DB_HOST', default='localhost'),
+        'PORT': env('DB_PORT', default='3307'),
     }
 }
 
@@ -120,3 +159,52 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+
+""" # Autorizacion de cors - Esta en development
+CORS_ALLOWED_ORIGINS = []  
+
+ALLOWED_HOSTS = []
+"""
+
+
+# Documentación
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+
+# Métadatos basicos del proyecto para la api
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Documentación Route Manager',
+    'DESCRIPTION': 'Esta es una documentación hecha automaticamente por drf_spectacular para Route Manager',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    # OTHER SETTINGS
+}
+
+
+#Supabase
+SUPABASE_URL = env('SUPABASE_URL')
+SUPABASE_KEY = env('SUPABASE_SERVICE_ROLE_KEY')
+
+
+
+
+# No lo usare de momento porque nisiquiera se que es
+""" LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+} """
+
