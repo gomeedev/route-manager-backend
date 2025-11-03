@@ -84,6 +84,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'users.middleware.SupabaseAuthMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -193,6 +194,7 @@ SPECTACULAR_SETTINGS = {
 #Supabase
 SUPABASE_URL = env('SUPABASE_URL')
 SUPABASE_KEY = env('SUPABASE_SERVICE_ROLE_KEY')
+SUPABASE_BUCKET = env('SUPABASE_BUCKET', default='images')
 
 
 
