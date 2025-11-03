@@ -41,6 +41,21 @@ class Usuario(models.Model):
     foto_perfil = models.URLField(blank=True, null=True)
     fecha_actualizacion_foto = models.DateTimeField(null=True, blank=True)
     
+    @property
+    def is_active(self):
+        """DRF necesita is_active"""
+        return self.estado == self.EstadoUsuario.ACTIVO
+    
+    @property
+    def is_authenticated(self):
+        """DRF necesita is_authenticated"""
+        return True
+    
+    @property
+    def is_anonymous(self):
+        """DRF necesita is_anonymous"""
+        return False
+    
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
     
