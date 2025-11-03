@@ -10,6 +10,9 @@ urlpatterns = [
     # Endpoints de empresa
     path("api/v1/", include('empresa.urls')),
     
+    # Endpoints de ['rol', 'usuario']
+    path("api/v1/", include('users.urls')),
+    
     # Mòdulo del admin
     path('admin/', admin.site.urls),
     
