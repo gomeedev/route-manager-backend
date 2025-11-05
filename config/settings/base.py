@@ -69,6 +69,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'drf_spectacular',
+    'empresa',
+    'users'
 ]
 
 MIDDLEWARE = [
@@ -80,6 +84,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'users.middleware.SupabaseAuthMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -178,7 +183,7 @@ REST_FRAMEWORK = {
 
 # Métadatos basicos del proyecto para la api
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Documentación Route Manager',
+    'TITLE': 'Documentación API de Route Manager',
     'DESCRIPTION': 'Esta es una documentación hecha automaticamente por drf_spectacular para Route Manager',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
@@ -189,6 +194,7 @@ SPECTACULAR_SETTINGS = {
 #Supabase
 SUPABASE_URL = env('SUPABASE_URL')
 SUPABASE_KEY = env('SUPABASE_SERVICE_ROLE_KEY')
+SUPABASE_BUCKET = env('SUPABASE_BUCKET', default='images')
 
 
 
