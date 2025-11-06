@@ -72,7 +72,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_spectacular',
     'empresa',
-    'users'
+    'users',
+    'drivers'
 ]
 
 MIDDLEWARE = [
