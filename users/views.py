@@ -23,7 +23,7 @@ class RolViewSet(viewsets.ModelViewSet):
     queryset = Rol.objects.all()
 
 
-@extend_schema(tags=["Endpoints Usuarios"])
+@extend_schema(tags=["Endpoints Usuarios"],)
 class UsuarioViewSet(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
     queryset = Usuario.objects.all()
@@ -57,6 +57,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
 
 
 # Endpoint que retorna una funcion cuyo objetivo es crear un usuario
+@extend_schema(tags=["Endpoints Usuarios"], description="Este endpoint se desarrollo con el fin de registrar usuarios para el modulo de autenticación con supabase.")
 @api_view(['POST'])
 def signup_usuario(request):
     
@@ -123,10 +124,10 @@ def signup_usuario(request):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
-
+    
+@extend_schema(tags=["Endpoints Usuarios"], description="Este ednpoint se desarrollo con el fin de retornar la informacion del usuario autenticado validando el token que proporciona supabase.")
 @api_view(['GET'])
 def usuario_actual(request):
-    """Retorna datos del usuario autenticado"""
     
     if not request.user or not isinstance(request.user, Usuario):
         return Response({"error": "No autenticado"}, status=status.HTTP_401_UNAUTHORIZED)
