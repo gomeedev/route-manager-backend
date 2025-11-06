@@ -10,7 +10,7 @@ class Driver(models.Model):
         No_DISPONIBLE = "no_disponible", "No disponible"
         
     id_conductor = models.AutoField(primary_key=True)
-    conductor = models.OneToOneField(Usuario, on_delete=models.CASCADE, related_name="estado operativo")
+    conductor = models.OneToOneField(Usuario, on_delete=models.CASCADE, related_name="estado_operativo")
     estado = models.CharField(choices=status_driver.choices, default=status_driver.DISPONIBLE, max_length=20)
     
     
