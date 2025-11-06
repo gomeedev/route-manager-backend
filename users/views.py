@@ -2,10 +2,13 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from .models import Empresa
 
+import os
+from django.utils import timezone
 
 from config.supabase_client import supabase
-from .models import Empresa
+
 
 from rest_framework import viewsets
 from .serializer import RolSerializer, UsuarioSerializer
@@ -24,7 +27,33 @@ class RolViewSet(viewsets.ModelViewSet):
 class UsuarioViewSet(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
     queryset = Usuario.objects.all()
+    
+    def handle_foto(self, usuario, archivo):
+        if not archivo:
+            return
 
+        nombre_archivo = f"foto_perfil/{usuario.supabase_uid}{os.path.splitext(archivo.name)[1]}"
+
+        # Subir a Supabase (sin upsert)
+        # Nota: si ya existe un archivo con ese nombre, deberías eliminarlo antes o renombrarlo
+        supabase.storage.from_("images").upload(
+            path=nombre_archivo,
+            file=archivo.read(),
+            file_options={"content-type": archivo.content_type}
+        )
+
+        # Obtener URL pública
+        url_publica = supabase.storage.from_("images").get_public_url(nombre_archivo)
+
+        # Guardar en el modelo
+        usuario.foto_perfil = url_publica
+        usuario.fecha_actualizacion_foto = timezone.now()
+        usuario.save()
+
+    def perform_update(self, serializer):
+        usuario = serializer.save()
+        archivo = self.request.FILES.get("foto")
+        self.handle_foto(usuario, archivo)
 
 
 # Endpoint que retorna una funcion cuyo objetivo es crear un usuario
