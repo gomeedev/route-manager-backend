@@ -5,7 +5,7 @@ from drf_spectacular.utils import extend_schema
 
 
 # Create your views here.
-@extend_schema(tags=["Empresas"])
+@extend_schema(tags=["Endpoints Empresas"])
 class EmpresaViewSet(viewsets.ModelViewSet):
     serializer_class = EmpresaSerializer
     queryset = Empresa.objects.all()
