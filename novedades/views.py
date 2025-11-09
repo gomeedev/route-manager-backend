@@ -55,12 +55,8 @@ class NovedadListCreateView(generics.ListCreateAPIView):
         novedad.save()
     
     
-    # ← VERIFICA QUE ESTE MÉTODO ESTÉ BIEN INDENTADO (mismo nivel que get_queryset)
     def perform_create(self, serializer):
         user = self.request.user
-        
-        print(f"=== PERFORM_CREATE EJECUTÁNDOSE ===")  # DEBUG
-        print(f"User: {user}")
         
         # Verificar autenticación PRIMERO
         if not isinstance(user, Usuario):
@@ -73,17 +69,15 @@ class NovedadListCreateView(generics.ListCreateAPIView):
         # Obtener el driver
         try:
             driver = Driver.objects.get(conductor=user)
-            print(f"Driver encontrado: {driver}")  # DEBUG
+            print(f"Driver encontrado: {driver}")
         except Driver.DoesNotExist:
             raise PermissionDenied("El usuario no es un conductor")
         
         # Guardar CON el conductor
         novedad = serializer.save(conductor=driver)
-        print(f"Novedad creada: {novedad.id_novedad}")  # DEBUG
         
         # Manejar la foto
         archivo = self.request.FILES.get("foto")
-        print(f"Archivo: {archivo}")  # DEBUG
         self.handle_imagen(novedad, archivo)
         
         

@@ -15,6 +15,6 @@ class NovedadSerializer(serializers.ModelSerializer):
         read_only_fields = ("id_novedad", "conductor", "fecha_novedad", "leida", "imagen")
         
     def create(self, validated_data):
-        # Extraer 'foto' antes de crear la instancia
+
         validated_data.pop('foto', None)
         return super().create(validated_data)
