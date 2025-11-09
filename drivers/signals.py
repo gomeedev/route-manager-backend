@@ -28,7 +28,7 @@ def crear_estado_conductor(sender, instance, created, **kwargs):
         if is_driver_role(instance):
             
             if not driver:
-                Driver.objects.create(conductor=instance, estado_driver=Driver.status_driver.DISPONIBLE)
+                Driver.objects.create(conductor=instance, estado=Driver.status_driver.DISPONIBLE)
         else:
             if driver:
                 driver.delete()
