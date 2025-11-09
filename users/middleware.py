@@ -1,5 +1,6 @@
 from config.supabase_client import supabase
 from .models import Usuario
+from django.contrib.auth.models import AnonymousUser
 
 class SupabaseAuthMiddleware:
     def __init__(self, get_response):
@@ -10,7 +11,6 @@ class SupabaseAuthMiddleware:
         # Evitar interferir con el panel de administración
         if request.path.startswith("/admin"):
             return self.get_response(request)
-        
         
         # Extraer token del header Authorization
         auth_header = request.headers.get('Authorization', '')
@@ -25,11 +25,12 @@ class SupabaseAuthMiddleware:
                 
                 # Buscar usuario en Django
                 request.user = Usuario.objects.get(supabase_uid=supabase_uid)
-            except Exception as e:
+            except Exception:
                 # Token inválido o usuario no existe
-                request.user = None
+                request.user = AnonymousUser()
         else:
-            request.user = None
+            request.user = AnonymousUser()
         
         respuesta = self.get_response(request)
         return respuesta
+    

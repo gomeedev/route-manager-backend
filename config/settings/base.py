@@ -73,7 +73,8 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'empresa',
     'users',
-    'drivers'
+    'drivers',
+    'novedades'
 ]
 
 MIDDLEWARE = [
@@ -81,6 +82,9 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    
+    'config.disable_csrf.DisableCSRFMiddleware',
+    
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
