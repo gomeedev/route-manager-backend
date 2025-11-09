@@ -16,6 +16,8 @@ urlpatterns = [
     # Endpoints de driver
     path("api/v1/drivers/", include("drivers.urls")),
     
+    path("api/v1/novedades/", include("novedades.urls")),
+    
     # Mòdulo del admin
     path('admin/', admin.site.urls),
     
