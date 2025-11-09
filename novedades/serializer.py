@@ -7,7 +7,14 @@ class NovedadSerializer(serializers.ModelSerializer):
         source="conductor.conductor.nombre", read_only=True
     )
     
+    foto = serializers.ImageField(write_only=True, required=False)
+    
     class Meta: 
         model = Novedad
         fields = "__all__"
-        read_only_fields = ("id_novedad", "conductor", "fecha_novedad", "leida")
+        read_only_fields = ("id_novedad", "conductor", "fecha_novedad", "leida", "imagen")
+        
+    def create(self, validated_data):
+        # Extraer 'foto' antes de crear la instancia
+        validated_data.pop('foto', None)
+        return super().create(validated_data)
