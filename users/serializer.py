@@ -23,11 +23,11 @@ class UsuarioSerializer(serializers.ModelSerializer):
     )
     # Para traer todos los campos de esa entidad relacionada - para mostrar en detalles
     rol_nombre = serializers.CharField(source="rol.nombre_rol", read_only=True)
-    empresa_nombre = serializers.CharField(source='empresa.nombre', read_only=True)
+    empresa_nombre = serializers.CharField(source='empresa.nombre_empresa', read_only=True)
     foto = serializers.ImageField(write_only=True, required=True)
     
     class Meta:
         model = Usuario
-        fields = "__all__"
+        fields = ("id_usuario", "supabase_uid", "correo","nombre", "apellido", "empresa", "empresa_nombre", "telefono_movil", "rol", "rol_nombre", "tipo_documento", "documento", "estado", "fecha_registro", "foto", "foto_perfil", "fecha_actualizacion_foto",)
         read_only_fields = ("id_usuario", "supabase_uid", "fecha_registro", "fecha_actualizacion_foto")
         
