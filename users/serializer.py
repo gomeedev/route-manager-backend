@@ -24,7 +24,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
     # Para traer todos los campos de esa entidad relacionada - para mostrar en detalles
     rol_nombre = serializers.CharField(source="rol.nombre_rol", read_only=True)
     empresa_nombre = serializers.CharField(source='empresa.nombre_empresa', read_only=True)
-    foto = serializers.ImageField(write_only=True, required=True)
+    foto = serializers.ImageField(write_only=True, required=False)
     
     class Meta:
         model = Usuario
