@@ -77,19 +77,17 @@ INSTALLED_APPS = [
     'novedades'
 ]
 
+# settings/base.py
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    
     'config.disable_csrf.DisableCSRFMiddleware',
-    
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'users.middleware.SupabaseAuthMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',  # Sí lo dejas
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'users.middleware.SupabaseAuthMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
