@@ -7,30 +7,33 @@ class SupabaseAuthMiddleware:
         self.get_response = get_response
     
     def __call__(self, request):
-        
-        # Evitar interferir con el panel de administración
+        # Para /admin, dejar que AuthenticationMiddleware maneje
         if request.path.startswith("/admin"):
             return self.get_response(request)
         
-        # Extraer token del header Authorization
+        # Extraer token
         auth_header = request.headers.get('Authorization', '')
         token = auth_header.replace('Bearer ', '').strip()
         
-        # Si hay token, validar
         if token:
             try:
-                # Validar token con Supabase
                 user_data = supabase.auth.get_user(token)
                 supabase_uid = user_data.user.id
                 
-                # Buscar usuario en Django
-                request.user = Usuario.objects.get(supabase_uid=supabase_uid)
-            except Exception:
-                # Token inválido o usuario no existe
+                try:
+                    usuario = Usuario.objects.select_related('rol', 'empresa').get(
+                        supabase_uid=supabase_uid
+                    )
+                    request.user = usuario
+                    # Evitar que AuthenticationMiddleware sobrescriba
+                    request._cached_user = usuario
+                except Usuario.DoesNotExist:
+                    request.user = AnonymousUser()
+            except Exception as e:
+                print(f"Token inválido: {str(e)}")
                 request.user = AnonymousUser()
         else:
             request.user = AnonymousUser()
         
-        respuesta = self.get_response(request)
-        return respuesta
+        return self.get_response(request)
     
