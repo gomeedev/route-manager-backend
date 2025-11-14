@@ -96,3 +96,7 @@ SUPABASE_BUCKET=images
 # State 
 ENVIRONMENT=development
 ```
+
+<div align="center">
+  <p><em>Last update: [14/11/2025]</em></p>
+</div>
