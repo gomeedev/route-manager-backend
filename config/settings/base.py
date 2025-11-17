@@ -74,7 +74,9 @@ INSTALLED_APPS = [
     'empresa',
     'users',
     'drivers',
-    'novedades'
+    'novedades',
+    'vehicles',
+    'routes'
 ]
 
 # settings/base.py
@@ -85,7 +87,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'config.disable_csrf.DisableCSRFMiddleware',
     'users.middleware.SupabaseAuthMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',  # Sí lo dejas
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]

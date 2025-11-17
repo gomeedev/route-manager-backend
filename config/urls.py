@@ -19,6 +19,9 @@ urlpatterns = [
     # Endpoints de novedades
     path("api/v1/novedades/", include("novedades.urls")),
     
+    # Endpoints vehiculos
+    path("api/v1/vehiculos/", include("vehicles.urls")),
+    
     # Mòdulo del admin
     path('admin/', admin.site.urls),
     

@@ -1,9 +1,13 @@
 from rest_framework import serializers
+from empresa.serializer import EmpresaSerializer
 from .models import Driver
 from users.models import Usuario
 
 
 class ConductorDetalleSerializer(serializers.ModelSerializer):
+    
+    empresa_nombre = serializers.CharField(source="empresa.nombre_empresa", read_only=True)
+    
     class Meta:
         model = Usuario
         fields = "__all__"
