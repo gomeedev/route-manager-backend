@@ -20,7 +20,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
     )
     empresa = serializers.PrimaryKeyRelatedField(
         queryset = Empresa.objects.all()
-    )
+    ) 
     # Para traer todos los campos de esa entidad relacionada - para mostrar en detalles
     rol_nombre = serializers.CharField(source="rol.nombre_rol", read_only=True)
     empresa_nombre = serializers.CharField(source='empresa.nombre_empresa', read_only=True)

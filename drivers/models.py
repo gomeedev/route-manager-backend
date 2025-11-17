@@ -12,6 +12,9 @@ class Driver(models.Model):
     id_conductor = models.AutoField(primary_key=True)
     conductor = models.OneToOneField(Usuario, on_delete=models.CASCADE, related_name="estado_operativo")
     estado = models.CharField(choices=status_driver.choices, default=status_driver.DISPONIBLE, max_length=20)
+    ubicacion_actual_lat = models.DecimalField(max_digits=10, decimal_places=8, null=True, blank=True)
+    ubicacion_actual_lng = models.DecimalField(max_digits=10, decimal_places=8, null=True, blank=True)
+    ultima_actualizacion_ubicacion = models.DateTimeField(null=True, blank=True)
     
     
     def __str__(self):
