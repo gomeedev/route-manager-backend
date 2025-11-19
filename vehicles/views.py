@@ -1,5 +1,4 @@
 from rest_framework import viewsets
-from rest_framework.decorators import action
 
 from rest_framework.exceptions import ValidationError
 from drf_spectacular.utils import extend_schema
@@ -42,11 +41,6 @@ class VehiculosViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         
         archivo = self.request.FILES.get("foto")
-                
-        if not archivo:
-            raise ValidationError("Es obligatorio subir una foto del vehiculo")
-        
-        
         vehiculo = serializer.save()
         
         self.handle_imagen(vehiculo, archivo)

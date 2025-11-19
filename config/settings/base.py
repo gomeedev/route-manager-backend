@@ -76,7 +76,8 @@ INSTALLED_APPS = [
     'drivers',
     'novedades',
     'vehicles',
-    'routes'
+    'packages',
+    'routes',
 ]
 
 # settings/base.py
