@@ -79,8 +79,6 @@ class Paquete(models.Model):
     peso = models.FloatField()
     valor_declarado = models.DecimalField(max_digits=10, decimal_places=2)
     cantidad = models.IntegerField()
-    imagen = models.URLField(null=True, blank=True)
-    observacion = models.TextField(max_length=200, null=True, blank=True)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="paquetes")
     localidad = models.ForeignKey(Localidad, on_delete=models.PROTECT)
     
