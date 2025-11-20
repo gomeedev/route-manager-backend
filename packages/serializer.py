@@ -33,8 +33,8 @@ class PaqueteSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Paquete
-        fields = ("id_paquete", "fecha_registro", "fecha_entrega", "tipo_paquete", "estado_paquete", "largo", "ancho", "alto", "peso", "valor_declarado", "cantidad", "cliente", "cliente_detalle", "localidad", "localidad_detalle",  "lat", "lng", "direccion_entrega", "orden_entrega", "ruta", "paquete_asignado")
-        read_only_fields = ("lat", "lng", "orden_entrega", "ruta", "ultimo_intento_entrega",)
+        fields = ("id_paquete", "fecha_registro", "fecha_entrega", "tipo_paquete", "estado_paquete", "largo", "ancho", "alto", "peso", "valor_declarado", "cantidad", "cliente", "cliente_detalle", "localidad", "localidad_detalle",  "lat", "lng", "direccion_entrega", "orden_entrega", "ruta", "paquete_asignado", "ultimo_intento_entrega", )
+        read_only_fields = ("lat", "lng", "orden_entrega", "ruta", )
         
         
     def create(self, validated_data):

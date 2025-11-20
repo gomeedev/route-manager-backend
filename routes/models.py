@@ -7,9 +7,9 @@ from vehicles.models import Vehiculo
 from drivers.models import Driver
 
 # Create your models here.
-
 def generar_codigo_manifiesto():
     return f"RT-{get_random_string(8, allowed_chars='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ')}"
+
 
 class Ruta(models.Model):
     class EstadoRuta(models.TextChoices):
