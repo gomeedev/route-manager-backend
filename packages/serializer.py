@@ -1,17 +1,38 @@
 from config.osm_service import OSMService
 
 from rest_framework import serializers
-from .models import Cliente, Localidad, Barrio, Paquete
+from .models import Cliente, Localidad, Paquete
 
 
+
+
+class ClienteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cliente
+        fields = "__all__"
+        
+    
+class LocalidadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Localidad
+        fields = "__all__"
+        
+        
 class PaqueteSerializer(serializers.ModelSerializer):
     
-    paquete_asignado = serializers.SerializerMethodField()
+    cliente = serializers.PrimaryKeyRelatedField(queryset = Cliente.objects.all(), write_only=True)
+    localidad = serializers.PrimaryKeyRelatedField(queryset = Localidad.objects.all(), write_only=True)
+    
+    cliente_detalle = ClienteSerializer(source="cliente", read_only=True)
+    localidad_detalle = LocalidadSerializer(source="localidad", read_only=True)
+
     foto = serializers.ImageField(write_only=True, required=False)
+    paquete_asignado = serializers.SerializerMethodField()
+    
     
     class Meta:
         model = Paquete
-        fields = ("id_paquete", "fecha_registro", "fecha_entrega", "tipo_paquete", "estado_paquete", "largo", "ancho", "alto", "peso", "valor_declarado", "cantidad", "imagen", "observacion", "cliente", "barrio", "lat", "lng", "direccion_entrega", "orden_entrega", "ruta", "foto", "paquete_asignado")
+        fields = ("id_paquete", "fecha_registro", "fecha_entrega", "tipo_paquete", "estado_paquete", "largo", "ancho", "alto", "peso", "valor_declarado", "cantidad", "imagen", "observacion", "cliente", "cliente_detalle", "localidad", "localidad_detalle",  "lat", "lng", "direccion_entrega", "orden_entrega", "ruta", "foto", "paquete_asignado")
         read_only_fields = ("lat", "lng", "orden_entrega", "ruta",)
         
         
@@ -20,10 +41,9 @@ class PaqueteSerializer(serializers.ModelSerializer):
         validated_data.pop('foto', None)
         
         direccion = validated_data["direccion_entrega"]
-        barrio = validated_data["barrio"]
-        localidad = barrio.id_localidad.nombre
+        localidad = validated_data["localidad"]
         
-        direccion_completa = f"{direccion}, {localidad}, Bogotá, Colombia"
+        direccion_completa = f"{direccion}, {localidad.nombre}, Bogotá, Colombia"
 
         coordenadas = OSMService.geocodificar_direccion(direccion_completa)
     
@@ -37,7 +57,7 @@ class PaqueteSerializer(serializers.ModelSerializer):
         paquete = super().create(validated_data)
         
         return paquete
-        
+    
         
     def get_paquete_asignado(self, objeto):
         if objeto.ruta:
@@ -64,23 +84,3 @@ class PaqueteSerializer(serializers.ModelSerializer):
         if value <= 0:
             raise serializers.ValidationError("El campo no puede ser 0")
         return value
-    
-    
-    
-
-class ClienteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Cliente
-        fields = "__all__"
-        
-    
-class LocalidadSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Localidad
-        fields = "__all__"
-        
-
-class BarrioSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Barrio
-        fields = "__all__"
