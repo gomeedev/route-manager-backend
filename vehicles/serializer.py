@@ -23,8 +23,6 @@ class VehiculoSerializer(serializers.ModelSerializer):
     
     
     def get_ruta_asignada(self, objeto):
-        
-        if hasattr(objeto, "ruta_actual") and objeto.ruta_actual is not None:
-            return objeto.ruta_actual.id_ruta
-        return "Sin asignar"
+        ruta_activa = objeto.rutas.filter(estado__in=["Asignada", "En ruta"]).first()
+        return ruta_activa.id_ruta if ruta_activa else "Sin asignar"
         
