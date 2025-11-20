@@ -23,12 +23,12 @@ class OSMService:
                 'q': direccion_completa,
                 'format': 'json',
                 'limit': 1,
-                'countrycodes': 'co',  # Limitar a Colombia
+                'countrycodes': 'co',
                 'addressdetails': 1
             }
             
             headers = {
-                'User-Agent': 'RouteManager/1.0'  # Nominatim requiere identificarte
+                'User-Agent': 'RouteManager/1.0'  # Nominatim requiere identificarse
             }
             
             response = requests.get(

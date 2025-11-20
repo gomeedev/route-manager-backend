@@ -91,10 +91,8 @@ class Paquete(models.Model):
     orden_entrega = models.IntegerField(null=True, blank=True)
     ruta = models.ForeignKey(Ruta, on_delete=models.SET_NULL, null=True, blank=True, related_name="paquetes")
     
-    
     def __str__(self):
         return f"{self.tipo_paquete} {self.estado_paquete}"
-    
     
     class Meta:
         db_table = "paquete"
