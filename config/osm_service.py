@@ -3,6 +3,7 @@ from decimal import Decimal
 import time
 
 
+""" Hecho con IA """
 class OSMService:
     
     NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"

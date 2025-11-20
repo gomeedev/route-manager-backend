@@ -26,7 +26,7 @@ class DriverSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Driver
-        fields = "id_conductor", "conductor", "estado", "ubicacion_actual_lat", "ubicacion_actual_lng", "ultima_actualizacion_ubicacion", "conductor_detalle", "ruta_asignada"
+        fields = ("id_conductor", "conductor", "estado", "ubicacion_actual_lat", "ubicacion_actual_lng", "ultima_actualizacion_ubicacion", "conductor_detalle", "ruta_asignada",)
         read_only_fields = ("id_conductor",)
         
         
