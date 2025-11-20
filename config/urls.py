@@ -22,8 +22,12 @@ urlpatterns = [
     # Endpoints vehiculos
     path("api/v1/vehiculos/", include("vehicles.urls")),
     
+    # Endpoints de paquetes
+    path("api/v1/paquetes/", include("packages.urls")),
+    
     # Mòdulo del admin
     path('admin/', admin.site.urls),
+    
     
     # Endpoints sobre la documentación
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
