@@ -93,8 +93,8 @@ class EntregaPaqueteSerializer(serializers.ModelSerializer):
 
 class RutaSerializer(serializers.ModelSerializer):
     
-    conductor = serializers.PrimaryKeyRelatedField(queryset=Driver.objects.all(), write_only=True)
-    vehiculo = serializers.PrimaryKeyRelatedField(queryset=Vehiculo.objects.all(), write_only=True)
+    conductor = serializers.PrimaryKeyRelatedField(queryset=Driver.objects.all(), write_only=True, required=False, allow_null=True)
+    vehiculo = serializers.PrimaryKeyRelatedField(queryset=Vehiculo.objects.all(), write_only=True, required=False, allow_null=True)
     
     conductor_detalle = DriverSerializer(source="conductor", read_only=True)
     vehiculo_detalle = VehiculoSerializer(source="vehiculo", read_only=True)
