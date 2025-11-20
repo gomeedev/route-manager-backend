@@ -53,18 +53,6 @@ class Localidad(models.Model):
         db_table = "localidad"
     
     
-class Barrio(models.Model):
-    id_barrio = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=20)
-    id_localidad = models.ForeignKey(Localidad, on_delete=models.CASCADE)
-    
-    def __str__(self):
-        return self.nombre
-    
-    class Meta:
-        db_table = "barrio"
-    
-    
 class Paquete(models.Model):
     class EstadoPaquete(models.TextChoices):
         PENDIENTE = "Pendiente", "Pendiente"
@@ -94,7 +82,7 @@ class Paquete(models.Model):
     imagen = models.URLField(null=True, blank=True)
     observacion = models.TextField(max_length=200, null=True, blank=True)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="paquetes")
-    barrio = models.ForeignKey(Barrio, on_delete=models.PROTECT)
+    localidad = models.ForeignKey(Localidad, on_delete=models.PROTECT)
     
     # Google Maps
     lat = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
@@ -110,5 +98,3 @@ class Paquete(models.Model):
     
     class Meta:
         db_table = "paquete"
-        
-    
