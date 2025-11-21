@@ -7,6 +7,10 @@ from django.db import transaction
 
 from drf_spectacular.utils import extend_schema
 
+import os
+from config.supabase_client import supabase
+from supabase import create_client
+
 from .models import Ruta, EntregaPaquete
 from .serializer import RutaSerializer, RutaMonitoreoSerializer, EntregaPaqueteSerializer
 from packages.models import Paquete
@@ -31,6 +35,24 @@ class RutaViewSet(viewsets.ModelViewSet):
         
         return queryset
     
+    
+    def handle_imagen(self, entrega, archivo):
+        if not archivo:
+            return
+        
+        nombre_archivo = f"entregas/{entrega.id_entrega}_{timezone.now().strftime('%Y%m%d%H%M%S')}{os.path.splitext(archivo.name)[1]}"
+        
+        supabase.storage.from_("images").upload(
+            path=nombre_archivo,
+            file=archivo.read(),
+            file_options={"content-type": archivo.content_type}
+        )
+        
+        url_publica = (supabase.storage.from_("images").get_public_url(nombre_archivo))
+        
+        entrega.imagen = url_publica
+        entrega.save()
+        
     
     @action(detail=True, methods=['post'])
     def asignar_paquetes(self, request, pk=None):
@@ -219,37 +241,53 @@ class RutaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Aquí irá tu lógica de OSRM
-        # Por ahora dejamos placeholder
-        
+        # Obtener paquetes ordenados
         paquetes = ruta.paquetes.all().order_by('id_paquete')
         
-        # TODO: Implementar llamada a OSRM
-        # coordenadas = [(p.lat, p.lng) for p in paquetes]
-        # resultado_osrm = OSMService.calcular_ruta_optimizada(coordenadas)
+        # Extraer coordenadas
+        coordenadas = []
+        for paquete in paquetes:
+            if not paquete.lat or not paquete.lng:
+                return Response(
+                    {"error": f"El paquete {paquete.id_paquete} no tiene coordenadas"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            coordenadas.append((float(paquete.lat), float(paquete.lng)))
         
-        # Placeholder temporal
-        ruta_optimizada = {
-            "polyline": "placeholder_polyline",
-            "orden": list(paquetes.values_list('id_paquete', flat=True))
-        }
+        # Llamar a OSRM
+        resultado = OSMService.calcular_ruta_optimizada(coordenadas)
         
-        # Asignar orden de entrega
-        for idx, paquete in enumerate(paquetes, start=1):
-            paquete.orden_entrega = idx
-            paquete.save()
+        if not resultado:
+            return Response(
+                {"error": "No se pudo calcular la ruta. Verifica las coordenadas."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
-        ruta.ruta_optimizada = ruta_optimizada
-        ruta.distancia_total_km = 15.5  # Placeholder
-        ruta.tiempo_estimado_minutos = 45  # Placeholder
-        ruta.save()
+        # Guardar resultado
+        with transaction.atomic():
+            ruta.ruta_optimizada = {
+                "polyline": resultado['polyline'],
+                "geometry": resultado['geometry'],
+                "orden": resultado['orden']
+            }
+            ruta.distancia_total_km = resultado['distancia_km']
+            ruta.tiempo_estimado_minutos = resultado['duracion_minutos']
+            ruta.save()
+            
+            # Asignar orden de entrega según resultado de OSRM
+            for idx, paquete_idx in enumerate(resultado['orden'], start=1):
+                paquete = paquetes[paquete_idx]
+                paquete.orden_entrega = idx
+                paquete.save()
         
         return Response({
             "mensaje": "Ruta calculada correctamente",
             "distancia_km": ruta.distancia_total_km,
-            "tiempo_estimado": ruta.tiempo_estimado_minutos,
-            "orden_paquetes": ruta_optimizada["orden"]
+            "tiempo_estimado_minutos": ruta.tiempo_estimado_minutos,
+            "orden_paquetes": [paquetes[i].id_paquete for i in resultado['orden']],
+            "geometry": resultado['geometry']  # Para dibujar en el mapa
         })
+
     
     
     @action(detail=True, methods=['post'])
@@ -350,6 +388,8 @@ class RutaViewSet(viewsets.ModelViewSet):
                 {"error": "Solo puedes marcar entregas en rutas activas"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+            
+        archivo = request.FILES.get("foto")
         
         # Crear registro de entrega
         data = {
@@ -358,14 +398,17 @@ class RutaViewSet(viewsets.ModelViewSet):
         }
         
         serializer = EntregaPaqueteSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({
-                "mensaje": "Entrega registrada correctamente",
-                "progreso": f"{ruta.paquetes_entregados + ruta.paquetes_fallidos}/{ruta.total_paquetes}"
-            }, status=status.HTTP_201_CREATED)
+        serializer.is_valid(raise_exception=True)
         
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        entrega = serializer.save()
+        
+        self.handle_imagen(entrega, archivo)
+        
+        return Response({
+            "mensaje": "Entrega registrada correctamente",
+            "imagen": entrega.imagen,
+            "progreso": f"{ruta.paquetes_entregados + ruta.paquetes_fallidos}/{ruta.total_paquetes}"
+        })
     
     
     @action(detail=True, methods=['get'])
