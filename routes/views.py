@@ -19,6 +19,8 @@ from packages.models import Paquete
 from drivers.models import Driver
 from vehicles.models import Vehiculo
 
+from .pdf import generar_pdf_ruta
+
 
 """Hecho casi completamente por IA"""
 @extend_schema(tags=["Endpoints rutas"])
@@ -466,3 +468,42 @@ class RutaViewSet(viewsets.ModelViewSet):
             "entregados": ruta.paquetes_entregados,
             "fallidos": ruta.paquetes_fallidos
         })
+
+
+    @action(detail=True, methods=['get'])
+    def exportar_pdf(self, request, pk=None):
+        ruta = self.get_object()
+
+        if ruta.estado not in ["Completada", "Fallida"]:
+            return Response(
+                {"error": "Solo puedes exportar rutas completadas o fallidas"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        buffer = generar_pdf_ruta(ruta) 
+
+        nombre_archivo = (
+            f"reportes/ruta_{ruta.codigo_manifiesto}_"
+            f"{timezone.now().strftime('%Y%m%d%H%M%S')}.pdf"
+        )
+
+        try:
+            supabase.storage.from_("images").upload(
+                path=nombre_archivo,
+                file=buffer.read(),
+                file_options={"content-type": "application/pdf"}
+            )
+
+            url_publica = supabase.storage.from_("images").get_public_url(nombre_archivo)
+
+            return Response({
+                "mensaje": "PDF generado correctamente",
+                "pdf_url": url_publica,
+                "nombre_archivo": nombre_archivo
+            })
+
+        except Exception as e:
+            return Response(
+                {"error": f"Error al subir PDF: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
