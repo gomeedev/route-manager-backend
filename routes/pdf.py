@@ -33,9 +33,9 @@ class EncabezadoPaginado:
         alto_header = 0.85 * inch
         y_inicio_header = alto_pagina - 0.75 * inch
         
-        # Division: 20% para logo, 80% para texto
-        ancho_seccion_logo = ancho_total_header * 0.20
-        ancho_seccion_texto = ancho_total_header * 0.80
+        # Division: 15% para logo, 85% para texto - REDUCIDO espacio del logo
+        ancho_seccion_logo = ancho_total_header * 0.15
+        ancho_seccion_texto = ancho_total_header * 0.85
         
         # Dibujar borde exterior completo
         canvas.setStrokeColor(colors.black)
@@ -96,12 +96,8 @@ class EncabezadoPaginado:
         # Linea 2: Centro de Gestion de Mercados, Logistica y Tecnologias de la Informacion
         y_linea2 = y_inicio_header - 0.55 * inch
         canvas.drawCentredString(x_centro_texto, y_linea2,
-                                "Centro de Gestion de Mercados, Logistica y")
+                                "Centro de Gestion de Mercados, Logistica y Tecnologias de la Informacion.")
         
-        # Linea 3: Continuacion
-        y_linea3 = y_inicio_header - 0.72 * inch
-        canvas.drawCentredString(x_centro_texto, y_linea3,
-                                "Tecnologias de la Informacion.")
         
         # Numero de pagina en esquina superior derecha
         canvas.setFont("Times-Roman", 10)
@@ -126,11 +122,11 @@ def generar_pdf_ruta(ruta, logo_path="static/images/logo_sena.png"):
     # Crear buffer en memoria
     buffer = BytesIO()
     
-    # Configurar documento con margenes AUMENTADOS para que el contenido no se coma
+    # Configurar documento con margenes AUMENTADOS - DOBLE de espacio superior
     doc = SimpleDocTemplate(
         buffer, 
         pagesize=letter,
-        topMargin=1.6 * inch,  # AUMENTADO para dejar espacio al header
+        topMargin=2.0 * inch,  # DUPLICADO para mas espacio entre header y contenido
         bottomMargin=0.75 * inch,
         leftMargin=0.75 * inch,
         rightMargin=0.75 * inch
