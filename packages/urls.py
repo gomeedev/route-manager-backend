@@ -9,6 +9,7 @@ router.register(r'clientes', ClienteViewSet, basename="cliente")
 router.register(r'localidades', LocalidadViewSet, basename="localidad")
 router.register(r'', PaquetesViewSet, basename="paquete")
 
+
 urlpatterns = [
     path("", include(router.urls))
 ]

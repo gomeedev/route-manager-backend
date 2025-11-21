@@ -7,6 +7,8 @@ from django.db import transaction
 
 from drf_spectacular.utils import extend_schema
 
+from config.osm_service import OSMService
+
 import os
 from config.supabase_client import supabase
 from supabase import create_client
@@ -100,14 +102,17 @@ class RutaViewSet(viewsets.ModelViewSet):
                 estado_paquete="Asignado"
             )
             
-            # Actualizar contador
-            ruta.total_paquetes = ruta.paquetes.count()
+            # Actualizar contador - usar len() en lugar de .count()
+            ruta.total_paquetes = ruta.paquetes.count()  # Refrescar desde BD
             ruta.estado = "Asignada"
             ruta.save()
+            
+            # Refrescar el objeto para obtener el valor actualizado
+            ruta.refresh_from_db()
         
         return Response({
-            "mensaje": f"{paquetes.count()} paquetes asignados correctamente",
-            "total_paquetes": ruta.total_paquetes
+            "mensaje": f"{len(paquetes_ids)} paquetes asignados correctamente",
+            "total_paquetes": ruta.total_paquetes  # Ahora debería ser correcto
         })
         
     
@@ -142,7 +147,7 @@ class RutaViewSet(viewsets.ModelViewSet):
             )
         
         # Verificar que el conductor esté disponible
-        if conductor.estado != "disponible":
+        if conductor.estado != "Disponible":
             return Response(
                 {"error": f"El conductor está {conductor.estado}"},
                 status=status.HTTP_400_BAD_REQUEST
@@ -372,14 +377,6 @@ class RutaViewSet(viewsets.ModelViewSet):
     def marcar_entrega(self, request, pk=None):
         """
         Driver marca un paquete como entregado o fallido.
-        Body: {
-            "paquete": 1,
-            "estado": "Entregado",
-            "imagen": "https://...",
-            "observacion": "Cliente recibió conforme",
-            "lat": 4.123,
-            "lng": -74.456
-        }
         """
         ruta = self.get_object()
         
@@ -388,13 +385,19 @@ class RutaViewSet(viewsets.ModelViewSet):
                 {"error": "Solo puedes marcar entregas en rutas activas"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-            
+        
+        # Extraer archivo
         archivo = request.FILES.get("foto")
         
-        # Crear registro de entrega
+        # Construir data manualmente
         data = {
-            **request.data,
-            "ruta": ruta.id_ruta
+            "paquete": request.data.get("paquete"),
+            "ruta": ruta.id_ruta,
+            "estado": request.data.get("estado"),
+            "observacion": request.data.get("observacion"),
+            "lat_entrega": request.data.get("lat_entrega"),
+            "lng_entrega": request.data.get("lng_entrega"),
+            "foto": archivo
         }
         
         serializer = EntregaPaqueteSerializer(data=data)
@@ -403,6 +406,9 @@ class RutaViewSet(viewsets.ModelViewSet):
         entrega = serializer.save()
         
         self.handle_imagen(entrega, archivo)
+        
+        # Refrescar ruta desde BD para obtener contadores actualizados
+        ruta.refresh_from_db()
         
         return Response({
             "mensaje": "Entrega registrada correctamente",

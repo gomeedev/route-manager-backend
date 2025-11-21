@@ -20,7 +20,7 @@ class EntregaPaqueteSerializer(serializers.ModelSerializer):
 
     paquete_info = serializers.SerializerMethodField()
     
-    foto = serializers.ImageField(write_only=True, required=True)
+    foto = serializers.ImageField(write_only=True, required=False)
     
     
     class Meta:
@@ -30,7 +30,7 @@ class EntregaPaqueteSerializer(serializers.ModelSerializer):
             "fecha_entrega", "imagen", "observacion",
             "lat_entrega", "lng_entrega", "paquete_info", "foto"
         )
-        read_only_field = ("id_entrega", "fecha_entrega")
+        read_only_fields = ("id_entrega", "fecha_entrega", "imagen", )
 
  
     def get_paquete_info(self, objetoeto):
