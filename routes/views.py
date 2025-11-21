@@ -480,7 +480,8 @@ class RutaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        buffer = generar_pdf_ruta(ruta) 
+        # Generar PDF con logo local (mas simple y confiable)
+        buffer = generar_pdf_ruta(ruta, logo_path="static/images/logo_sena.png")
 
         nombre_archivo = (
             f"reportes/ruta_{ruta.codigo_manifiesto}_"
@@ -488,9 +489,10 @@ class RutaViewSet(viewsets.ModelViewSet):
         )
 
         try:
+            # Usar getvalue() para obtener los bytes del buffer
             supabase.storage.from_("images").upload(
                 path=nombre_archivo,
-                file=buffer.read(),
+                file=buffer.getvalue(),
                 file_options={"content-type": "application/pdf"}
             )
 
