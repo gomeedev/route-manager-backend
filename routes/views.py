@@ -128,9 +128,9 @@ class RutaViewSet(viewsets.ModelViewSet):
         """
         ruta = self.get_object()
         
-        if ruta.estado not in ["Pendiente", "Asignada"]:
+        if ruta.estado != "Pendiente":
             return Response(
-                {"error": "Solo puedes asignar conductores a rutas Pendientes o Asignadas"},
+                {"error": "Solo puedes asignar conductores a rutas Pendientes"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -157,6 +157,13 @@ class RutaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Verificar que tenga vehículo asignado
+        if not conductor.vehiculo:
+            return Response(
+                {"error": "El conductor no tiene un vehículo asignado"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         # Verificar que no tenga ruta activa
         if Ruta.objects.filter(
             conductor=conductor,
@@ -167,9 +174,15 @@ class RutaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Asignar conductor
-        ruta.conductor = conductor
-        ruta.save()
+        with transaction.atomic():
+            # Asignar conductor
+            ruta.conductor = conductor
+            ruta.estado = "Asignada"  # CAMBIO AQUÍ
+            ruta.save()
+            
+            # Cambiar estado del conductor a Asignado
+            conductor.estado = "Asignado"  # CAMBIO AQUÍ
+            conductor.save()
         
         return Response({
             "mensaje": "Conductor asignado correctamente",
