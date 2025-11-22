@@ -68,9 +68,9 @@ class RutaViewSet(viewsets.ModelViewSet):
         """
         ruta = self.get_object()
         
-        if ruta.estado not in ["Pendiente", "Asignada"]:
+        if ruta.estado != "Pendiente":
             return Response(
-                {"error": "Solo puedes asignar paquetes a rutas Pendientes o Asignadas"},
+                {"error": "Solo puedes asignar paquetes a rutas Pendientes"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -108,7 +108,6 @@ class RutaViewSet(viewsets.ModelViewSet):
             
             # Actualizar contador - usar len() en lugar de .count()
             ruta.total_paquetes = ruta.paquetes.count()  # Refrescar desde BD
-            ruta.estado = "Asignada"
             ruta.save()
             
             # Refrescar el objeto para obtener el valor actualizado
@@ -188,6 +187,76 @@ class RutaViewSet(viewsets.ModelViewSet):
             "mensaje": "Conductor asignado correctamente",
             "conductor": conductor.conductor.nombre,
             "ruta": ruta.codigo_manifiesto
+        })
+        
+    
+    @action(detail=True, methods=['patch'])
+    def reemplazar_conductor(self, request, pk=None):
+        """
+        Reemplaza el conductor de una ruta Asignada.
+        Body: {"conductor": 5}
+        """
+        ruta = self.get_object()
+        
+        if ruta.estado != "Asignada":
+            return Response(
+                {"error": "Solo puedes reemplazar conductores en rutas Asignadas"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        nuevo_conductor_id = request.data.get('conductor')
+        
+        if not nuevo_conductor_id:
+            return Response(
+                {"error": "Debes proporcionar el ID del nuevo conductor"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            nuevo_conductor = Driver.objects.get(id_conductor=nuevo_conductor_id)
+        except Driver.DoesNotExist:
+            return Response(
+                {"error": "Conductor no encontrado"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Validaciones del nuevo conductor
+        if nuevo_conductor.estado != "Disponible":
+            return Response(
+                {"error": f"El conductor está {nuevo_conductor.estado}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not nuevo_conductor.vehiculo:
+            return Response(
+                {"error": "El conductor no tiene un vehículo asignado"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if Ruta.objects.filter(conductor=nuevo_conductor, estado__in=["Asignada", "En ruta"]).exists():
+            return Response(
+                {"error": "Este conductor ya tiene una ruta activa"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        with transaction.atomic():
+            # Liberar conductor anterior
+            conductor_anterior = ruta.conductor
+            if conductor_anterior:
+                conductor_anterior.estado = "Disponible"
+                conductor_anterior.save()
+            
+            # Asignar nuevo conductor
+            ruta.conductor = nuevo_conductor
+            ruta.save()
+            
+            nuevo_conductor.estado = "Asignado"
+            nuevo_conductor.save()
+        
+        return Response({
+            "mensaje": "Conductor reemplazado correctamente",
+            "conductor_anterior": conductor_anterior.conductor.nombre if conductor_anterior else "Ninguno",
+            "conductor_nuevo": nuevo_conductor.conductor.nombre
         })
     
     

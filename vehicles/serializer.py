@@ -15,6 +15,13 @@ class VehiculoSerializer(serializers.ModelSerializer):
         fields = ("id_vehiculo", "tipo", "placa", "imagen", "estado", "conductor_asignado", "foto")
         read_only_fields = ("id_vehiculo", "imagen")
         
+    
+    def validate_placa(self, value):
+        
+        if len(value) != 6:
+            raise serializers.ValidationError("La placa debe tener exactamente 6 caracteres")
+        return value
+    
 
     def create(self, validated_data):
 
