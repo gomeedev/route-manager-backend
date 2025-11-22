@@ -3,7 +3,6 @@ from django.utils import timezone
 
 from django.utils.crypto import get_random_string
 
-from vehicles.models import Vehiculo
 from drivers.models import Driver
 
 # Create your models here.

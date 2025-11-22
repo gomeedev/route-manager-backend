@@ -258,11 +258,11 @@ def generar_pdf_ruta(ruta, logo_path="static/images/logo_sena.png"):
     elements.append(Paragraph("3. Vehiculo Usado", encabezado_nivel1))
     elements.append(Spacer(1, 0.1 * inch))
 
-    if ruta.vehiculo:
+    if ruta.conductor and ruta.conductor.vehiculo:
         datos_vehiculo = [
-            ['Placa:', ruta.vehiculo.placa],
-            ['Tipo:', ruta.vehiculo.tipo],
-            ['Estado:', ruta.vehiculo.estado]
+            ['Placa:', ruta.conductor.vehiculo.placa],
+            ['Tipo:', ruta.conductor.vehiculo.tipo],
+            ['Estado:', ruta.conductor.vehiculo.estado]
         ]
     else:
         datos_vehiculo = [['Vehiculo:', 'No asignado']]

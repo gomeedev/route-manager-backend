@@ -28,7 +28,7 @@ from .pdf import generar_pdf_ruta
 @extend_schema(tags=["Endpoints rutas"])
 class RutaViewSet(viewsets.ModelViewSet):
     serializer_class = RutaSerializer
-    queryset = Ruta.objects.select_related('conductor', 'vehiculo').prefetch_related('paquetes').all()
+    queryset = Ruta.objects.select_related('conductor').prefetch_related('paquetes').all()
     
     
     def get_queryset(self):
@@ -151,7 +151,7 @@ class RutaViewSet(viewsets.ModelViewSet):
             )
         
         # Verificar que el conductor esté disponible
-        if conductor.estado != "disponible":
+        if conductor.estado != "Disponible":
             return Response(
                 {"error": f"El conductor está {conductor.estado}"},
                 status=status.HTTP_400_BAD_REQUEST
@@ -174,64 +174,6 @@ class RutaViewSet(viewsets.ModelViewSet):
         return Response({
             "mensaje": "Conductor asignado correctamente",
             "conductor": conductor.conductor.nombre,
-            "ruta": ruta.codigo_manifiesto
-        })
-
-
-    @action(detail=True, methods=['post'])
-    def asignar_vehiculo(self, request, pk=None):
-        """
-        Asigna un vehículo a la ruta.
-        Body: {"vehiculo": 1}
-        """
-        ruta = self.get_object()
-        
-        if ruta.estado not in ["Pendiente", "Asignada"]:
-            return Response(
-                {"error": "Solo puedes asignar vehículos a rutas Pendientes o Asignadas"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        vehiculo_id = request.data.get('vehiculo')
-        
-        if not vehiculo_id:
-            return Response(
-                {"error": "Debes proporcionar el ID del vehículo"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            vehiculo = Vehiculo.objects.get(id_vehiculo=vehiculo_id)
-        except Vehiculo.DoesNotExist:
-            return Response(
-                {"error": "Vehículo no encontrado"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        # Verificar que el vehículo esté disponible
-        if vehiculo.estado != "Disponible":
-            return Response(
-                {"error": f"El vehículo está {vehiculo.estado}"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Verificar que no tenga ruta activa
-        if Ruta.objects.filter(
-            vehiculo=vehiculo,
-            estado__in=["Asignada", "En ruta"]
-        ).exists():
-            return Response(
-                {"error": "Este vehículo ya está en uso"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Asignar vehículo
-        ruta.vehiculo = vehiculo
-        ruta.save()
-        
-        return Response({
-            "mensaje": "Vehículo asignado correctamente",
-            "vehiculo": vehiculo.placa,
             "ruta": ruta.codigo_manifiesto
         })
     
@@ -329,13 +271,13 @@ class RutaViewSet(viewsets.ModelViewSet):
             
             # Cambiar estado del conductor
             if ruta.conductor:
-                ruta.conductor.estado = "en_ruta"
+                ruta.conductor.estado = "En ruta"
                 ruta.conductor.save()
             
             # Cambiar estado del vehículo
-            if ruta.vehiculo:
-                ruta.vehiculo.estado = "En ruta"
-                ruta.vehiculo.save()
+            if ruta.conductor.vehiculo:
+                ruta.conductor.vehiculo.estado = "En ruta"
+                ruta.conductor.vehiculo.save()
         
         return Response({
             "mensaje": "Ruta iniciada correctamente",
@@ -457,7 +399,7 @@ class RutaViewSet(viewsets.ModelViewSet):
             
             # Liberar conductor
             if ruta.conductor:
-                ruta.conductor.estado = "disponible"
+                ruta.conductor.estado = "Disponible"
                 ruta.conductor.save()
             
             # Liberar vehículo

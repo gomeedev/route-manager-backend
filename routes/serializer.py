@@ -8,9 +8,6 @@ from packages.serializer import PaqueteSerializer
 from drivers.models import Driver
 from drivers.serializer import DriverSerializer
 
-from vehicles.models import Vehiculo
-from vehicles.serializer import VehiculoSerializer
-
 from .models import EntregaPaquete, Ruta
 
 
@@ -94,10 +91,8 @@ class EntregaPaqueteSerializer(serializers.ModelSerializer):
 class RutaSerializer(serializers.ModelSerializer):
     
     conductor = serializers.PrimaryKeyRelatedField(queryset=Driver.objects.all(), write_only=True, required=False, allow_null=True)
-    vehiculo = serializers.PrimaryKeyRelatedField(queryset=Vehiculo.objects.all(), write_only=True, required=False, allow_null=True)
     
     conductor_detalle = DriverSerializer(source="conductor", read_only=True)
-    vehiculo_detalle = VehiculoSerializer(source="vehiculo", read_only=True)
     paquetes_asignados = PaqueteSerializer(source="paquetes", many=True, read_only=True)
     
     progreso = serializers.SerializerMethodField()
@@ -110,7 +105,6 @@ class RutaSerializer(serializers.ModelSerializer):
             "id_ruta", "codigo_manifiesto", "estado",
             "fecha_creacion", "fecha_inicio", "fecha_fin",
             "conductor", "conductor_detalle",
-            "vehiculo", "vehiculo_detalle",
             "ruta_optimizada", "distancia_total_km", "tiempo_estimado_minutos",
             "total_paquetes", "paquetes_entregados", "paquetes_fallidos",
             "paquetes_asignados", "progreso", "ultima_entrega"
@@ -140,13 +134,9 @@ class RutaSerializer(serializers.ModelSerializer):
     """ Hecho con IA """
     def validate(self, data):
         conductor = data.get('conductor')
-        vehiculo = data.get('vehiculo')
         
         if conductor and Ruta.objects.filter(conductor=conductor, estado__in=["Asignada", "En ruta"]).exists():
             raise serializers.ValidationError({"conductor": "Este conductor ya tiene una ruta activa"})
-        
-        if vehiculo and Ruta.objects.filter(vehiculo=vehiculo, estado__in=["Asignada", "En ruta"]).exists():
-            raise serializers.ValidationError({"vehiculo": "Este vehiculo ya tiene una ruta activa"})
         
         return data
     
