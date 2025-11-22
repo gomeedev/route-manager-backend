@@ -1,7 +1,9 @@
 from rest_framework import serializers
-from empresa.serializer import EmpresaSerializer
+
 from .models import Driver
 from users.models import Usuario
+
+from vehicles.serializer import VehiculoSerializer
 
 
 class ConductorDetalleSerializer(serializers.ModelSerializer):
@@ -18,15 +20,18 @@ class DriverSerializer(serializers.ModelSerializer):
     
     conductor_detalle = ConductorDetalleSerializer(source="conductor", read_only=True)
     
+    # Para traer el id del conductor respecto a los usuarios (su id original)
     conductor = serializers.PrimaryKeyRelatedField(
         queryset = Usuario.objects.filter(rol__nombre_rol="driver")
     )
+    
+    vehiculo_detalle = VehiculoSerializer(source="vehiculo", read_only=True)
     
     ruta_asignada = serializers.SerializerMethodField()
     
     class Meta:
         model = Driver
-        fields = ("id_conductor", "conductor", "estado", "ubicacion_actual_lat", "ubicacion_actual_lng", "ultima_actualizacion_ubicacion", "conductor_detalle", "ruta_asignada",)
+        fields = ("id_conductor", "conductor", "estado", "ubicacion_actual_lat", "ubicacion_actual_lng", "ultima_actualizacion_ubicacion", "conductor_detalle", "vehiculo_detalle", "ruta_asignada",)
         read_only_fields = ("id_conductor",)
         
         

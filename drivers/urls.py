@@ -1,10 +1,10 @@
-from django.urls import path
-from .views import DriverListView, DriverDetailView, DriverStateUpdateView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import DriverViewSet
 
+router = DefaultRouter()
+router.register(r'', DriverViewSet, basename='conductor')
 
 urlpatterns = [
-    path("", DriverListView.as_view(), name="drivers-list"),
-    path("<int:id_conductor>/", DriverDetailView.as_view(), name="drivers-datails"),
-    path("", DriverStateUpdateView.as_view(), name="DriverStateUpdate"),
-    
+    path('', include(router.urls)),
 ]
