@@ -28,11 +28,13 @@ class PaqueteSerializer(serializers.ModelSerializer):
     
     paquete_asignado = serializers.SerializerMethodField()
     
+    ultimo_intento_entrega = serializers.SerializerMethodField()
+    
     
     class Meta:
         model = Paquete
-        fields = ("id_paquete", "fecha_registro", "fecha_entrega", "tipo_paquete", "estado_paquete", "largo", "ancho", "alto", "peso", "valor_declarado", "cantidad", "imagen", "observacion", "cliente", "cliente_detalle", "localidad", "localidad_detalle",  "lat", "lng", "direccion_entrega", "orden_entrega", "ruta", "paquete_asignado")
-        read_only_fields = ("lat", "lng", "orden_entrega", "ruta",)
+        fields = ("id_paquete", "fecha_registro", "fecha_entrega", "tipo_paquete", "estado_paquete", "largo", "ancho", "alto", "peso", "valor_declarado", "cantidad", "cliente", "cliente_detalle", "localidad", "localidad_detalle",  "lat", "lng", "direccion_entrega", "orden_entrega", "ruta", "paquete_asignado", "ultimo_intento_entrega", )
+        read_only_fields = ("lat", "lng", "orden_entrega", "ruta", )
         
         
     def create(self, validated_data):
@@ -61,8 +63,20 @@ class PaqueteSerializer(serializers.ModelSerializer):
             return objeto.ruta.id_ruta
         else:
             return "Sin asignar"
+        
+        
+    def get_ultimo_intento_entrega(self, obj):
+        ultimo = obj.entregas.order_by('-fecha_entrega').first()
+        if ultimo:
+            return {
+                "estado": ultimo.estado,
+                "fecha": ultimo.fecha_entrega,
+                "imagen": ultimo.imagen,
+                "observacion": ultimo.observacion
+            }
+        return None
    
-    
+
     def validate_largo(self, value):
         if value <= 0:
             raise serializers.ValidationError("El campo no puede ser 0")

@@ -22,9 +22,16 @@ class DriverSerializer(serializers.ModelSerializer):
         queryset = Usuario.objects.filter(rol__nombre_rol="driver")
     )
     
+    ruta_asignada = serializers.SerializerMethodField()
+    
     class Meta:
         model = Driver
-        fields = "__all__"
+        fields = ("id_conductor", "conductor", "estado", "ubicacion_actual_lat", "ubicacion_actual_lng", "ultima_actualizacion_ubicacion", "conductor_detalle", "ruta_asignada",)
         read_only_fields = ("id_conductor",)
         
+        
+    def get_ruta_asignada(self, objeto):
+        ruta_activa = objeto.rutas.filter(estado__in=["Asignada", "En ruta"]).first()
+        return ruta_activa.id_ruta if ruta_activa else "Sin asignar"
+
         

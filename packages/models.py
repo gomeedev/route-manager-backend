@@ -1,8 +1,6 @@
 from django.db import models
 from django.utils import timezone
 
-from routes.models import Ruta
-
 
 # Create your models here.
 class Cliente(models.Model):
@@ -79,17 +77,19 @@ class Paquete(models.Model):
     peso = models.FloatField()
     valor_declarado = models.DecimalField(max_digits=10, decimal_places=2)
     cantidad = models.IntegerField()
-    imagen = models.URLField(null=True, blank=True)
-    observacion = models.TextField(max_length=200, null=True, blank=True)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="paquetes")
-    localidad = models.ForeignKey(Localidad, on_delete=models.PROTECT)
+    localidad = models.ForeignKey(Localidad, on_delete=models.PROTECT, default=None)
     
     # Google Maps
     lat = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     lng = models.DecimalField(max_digits=11, decimal_places=7, null=True, blank=True) 
     direccion_entrega = models.CharField(max_length=200)
     orden_entrega = models.IntegerField(null=True, blank=True)
-    ruta = models.ForeignKey(Ruta, on_delete=models.SET_NULL, null=True, blank=True, related_name="paquetes")
+    
+    """ Tuve que importar el modulo de ruta de esta manera debido a un error circular al intentar importar el modelo como normalmente se hace.
+    Desconozco la razón por la que sucedio (se cree que por un error circular de importaciones) pero vi que esta era la solución y asi lo fue.
+    """
+    ruta = models.ForeignKey("routes.Ruta", on_delete=models.SET_NULL, null=True, blank=True, related_name="paquetes")
     
     def __str__(self):
         return f"{self.tipo_paquete} {self.estado_paquete}"

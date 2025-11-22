@@ -45,8 +45,8 @@ class DriverDetailView(generics.RetrieveUpdateAPIView):
         
         serializer = self.get_serializer(driver)
         return Response(serializer.data)
-    
-    
+
+
 @extend_schema(tags=["Endpoints coductores"])
 class DriverStateUpdateView(views.APIView):
     def patch(self, request, id_conductor):
