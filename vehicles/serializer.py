@@ -6,13 +6,13 @@ from empresa.models import Empresa
 
 class VehiculoSerializer(serializers.ModelSerializer):
     
-    """ vehiculo_asignado = serializers.SerializerMethodField() """
+    conductor_asignado = serializers.SerializerMethodField()
     foto = serializers.ImageField(write_only=True, required=True)
     
     
     class Meta:
         model = Vehiculo
-        fields = ("id_vehiculo", "tipo", "placa", "imagen", "estado", "foto")
+        fields = ("id_vehiculo", "tipo", "placa", "imagen", "estado", "conductor_asignado", "foto")
         read_only_fields = ("id_vehiculo", "imagen")
         
 
@@ -28,7 +28,9 @@ class VehiculoSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
     
     
-"""     def get_ruta_asignada(self, objeto):
-        ruta_activa = objeto.rutas.filter(estado__in=["Asignada", "En ruta"]).first()
-        return ruta_activa.id_ruta if ruta_activa else "Sin asignar" """
-        
+    def get_conductor_asignado(self, objeto):
+        conductor_activo = objeto.drivers.filter(estado__in=["Disponible", "Asignado"]).first()
+        if conductor_activo:
+            return conductor_activo.id_conductor
+        else:
+            return "Sin asignar"
