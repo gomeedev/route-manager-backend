@@ -1,4 +1,6 @@
 # routes/views.py
+from django.http import HttpResponse
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -7,11 +9,11 @@ from django.db import transaction
 
 from drf_spectacular.utils import extend_schema
 
-from config.osm_service import OSMService
-
-import os
 from config.supabase_client import supabase
-from supabase import create_client
+from django.utils import timezone
+import os
+
+from config.osm_service import OSMService
 
 from .models import Ruta, EntregaPaquete
 from .serializer import RutaSerializer, RutaMonitoreoSerializer, EntregaPaqueteSerializer
@@ -149,7 +151,7 @@ class RutaViewSet(viewsets.ModelViewSet):
             )
         
         # Verificar que el conductor esté disponible
-        if conductor.estado != "Disponible":
+        if conductor.estado != "disponible":
             return Response(
                 {"error": f"El conductor está {conductor.estado}"},
                 status=status.HTTP_400_BAD_REQUEST
@@ -480,32 +482,12 @@ class RutaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Generar PDF con logo local (mas simple y confiable)
+        # Generar PDF en memoria
         buffer = generar_pdf_ruta(ruta, logo_path="static/images/logo_sena.png")
+        pdf_bytes = buffer.getvalue()
 
-        nombre_archivo = (
-            f"reportes/ruta_{ruta.codigo_manifiesto}_"
-            f"{timezone.now().strftime('%Y%m%d%H%M%S')}.pdf"
-        )
+        # Enviar el PDF directo al frontend
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename=ruta_{ruta.codigo_manifiesto}.pdf'
 
-        try:
-            # Usar getvalue() para obtener los bytes del buffer
-            supabase.storage.from_("images").upload(
-                path=nombre_archivo,
-                file=buffer.getvalue(),
-                file_options={"content-type": "application/pdf"}
-            )
-
-            url_publica = supabase.storage.from_("images").get_public_url(nombre_archivo)
-
-            return Response({
-                "mensaje": "PDF generado correctamente",
-                "pdf_url": url_publica,
-                "nombre_archivo": nombre_archivo
-            })
-
-        except Exception as e:
-            return Response(
-                {"error": f"Error al subir PDF: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        return response
