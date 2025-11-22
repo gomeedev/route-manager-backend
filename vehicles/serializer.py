@@ -34,3 +34,4 @@ class VehiculoSerializer(serializers.ModelSerializer):
             return conductor_activo.id_conductor
         else:
             return "Sin asignar"
+

@@ -1,4 +1,5 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, status
+from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema
 
@@ -11,6 +12,23 @@ from .serializer import ClienteSerializer, LocalidadSerializer, PaqueteSerialize
 class PaquetesViewSet(viewsets.ModelViewSet):
     serializer_class = PaqueteSerializer
     queryset = Paquete.objects.all()
+    
+    def update(self, request, *args, **kwargs):
+        paquete = self.get_object()
+        
+        if paquete.estado_paquete != "Pendiente":
+            return Response ({"error": f"No se puede editar un paquete en estado {paquete.estado_paquete}"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        return super().update(request, *args, **kwargs)
+    
+    def partial_update(self, request, *args, **kwargs):
+        paquete = self.get_object()
+        
+        if paquete.estado_paquete != "Pendiente":
+            return Response ({"error": f"No se puede editar un paquete en estado {paquete.estado_paquete}"}, status=status.HTTP_400_BAD_REQUEST)
+        return super().partial_update(request, *args, **kwargs)
+
+
 
 
 @extend_schema(tags=["Endpoints clientes"])

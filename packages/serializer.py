@@ -56,6 +56,28 @@ class PaqueteSerializer(serializers.ModelSerializer):
         paquete = super().create(validated_data)
         
         return paquete
+    
+    
+    def update(self, instance, validated_data):
+        
+        direccion = validated_data["direccion_entrega"]
+        localidad = validated_data.get("localidad", instance.localidad)
+        
+        if direccion:  # Solo si envían nueva dirección
+            direccion_completa = f"{direccion}, {localidad.nombre}, Bogotá, Colombia"
+        
+        coordenadas = OSMService.geocodificar_direccion(direccion_completa)
+    
+        if coordenadas is None:
+            # evidentemente el error es de geocodificación pero el mensaje es sencillo para orientar al usuario
+            raise serializers.ValidationError({"direccion_entrega": "No se encontró la dirección, valida que sea valida"})
+        
+        validated_data['lat'] = coordenadas['lat']
+        validated_data["lng"] = coordenadas["lng"]
+        
+        paquete = super().update(instance, validated_data)
+        
+        return paquete
 
         
     def get_paquete_asignado(self, objeto):
