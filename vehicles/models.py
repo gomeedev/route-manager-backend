@@ -18,7 +18,7 @@ class Vehiculo(models.Model):
     
     id_vehiculo = models.AutoField(primary_key=True)
     tipo = models.CharField(choices=TipoVehiculo, default=TipoVehiculo.FURGON, max_length=10)
-    placa = models.CharField(max_length=6, unique=True)
+    placa = models.CharField(max_length=7, unique=True)
     imagen = models.URLField(null=False, blank=False)
     estado = models.CharField(choices=EstadoVehiculo, default=EstadoVehiculo.DISPONIBLE, max_length=15)
     

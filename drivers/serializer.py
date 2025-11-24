@@ -37,6 +37,9 @@ class DriverSerializer(serializers.ModelSerializer):
         
     def get_ruta_asignada(self, objeto):
         ruta_activa = objeto.rutas.filter(estado__in=["Asignada", "En ruta"]).first()
-        return ruta_activa.id_ruta if ruta_activa else "Sin asignar"
+        if ruta_activa:
+            return ruta_activa.codigo_manifiesto
+        else:
+            return "Sin asignar"
 
         

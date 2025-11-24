@@ -33,7 +33,7 @@ class PaqueteSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Paquete
-        fields = ("id_paquete", "fecha_registro", "fecha_entrega", "tipo_paquete", "estado_paquete", "largo", "ancho", "alto", "peso", "valor_declarado", "cantidad", "cliente", "cliente_detalle", "localidad", "localidad_detalle",  "lat", "lng", "direccion_entrega", "orden_entrega", "ruta", "paquete_asignado", "ultimo_intento_entrega", )
+        fields = ("id_paquete", "fecha_registro", "fecha_entrega", "tipo_paquete", "estado_paquete", "largo", "ancho", "alto", "peso", "valor_declarado", "cantidad", "cliente", "cliente_detalle", "localidad", "localidad_detalle", "destinatario_nombre", "destinatario_apellido", "destinatario_telefono", "destinatario_correo", "lat", "lng", "direccion_entrega", "orden_entrega", "ruta", "paquete_asignado", "ultimo_intento_entrega", )
         read_only_fields = ("lat", "lng", "orden_entrega", "ruta", )
         
         
@@ -82,7 +82,7 @@ class PaqueteSerializer(serializers.ModelSerializer):
         
     def get_paquete_asignado(self, objeto):
         if objeto.ruta:
-            return objeto.ruta.id_ruta
+            return objeto.ruta.codigo_manifiesto
         else:
             return "Sin asignar"
         

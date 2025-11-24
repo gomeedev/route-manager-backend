@@ -82,6 +82,8 @@ class RutaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        print("DEBUG asignar_paquetes: paquetes_ids =", paquetes_ids)
+        
         # Verificar que todos los paquetes existen y están disponibles
         paquetes = Paquete.objects.filter(id_paquete__in=paquetes_ids)
         
@@ -99,23 +101,25 @@ class RutaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Asignar paquetes
+        # ✅ SOLUCIÓN: Asignar paquetes y actualizar contador en una sola transacción
         with transaction.atomic():
+            # Actualizar los paquetes
             paquetes.update(
                 ruta=ruta,
                 estado_paquete="Asignado"
             )
             
-            # Actualizar contador - usar len() en lugar de .count()
-            ruta.total_paquetes = ruta.paquetes.count()  # Refrescar desde BD
+            # ✅ Usar el len() de la lista original en lugar de hacer un .count()
+            # Esto evita problemas de caché y asegura la precisión
+            ruta.total_paquetes = ruta.total_paquetes + len(paquetes_ids)
             ruta.save()
-            
-            # Refrescar el objeto para obtener el valor actualizado
-            ruta.refresh_from_db()
+        
+        # Refrescar el objeto después de la transacción
+        ruta.refresh_from_db()
         
         return Response({
             "mensaje": f"{len(paquetes_ids)} paquetes asignados correctamente",
-            "total_paquetes": ruta.total_paquetes  # Ahora debería ser correcto
+            "total_paquetes": ruta.total_paquetes
         })
         
     
@@ -132,6 +136,13 @@ class RutaViewSet(viewsets.ModelViewSet):
                 {"error": "Solo puedes asignar conductores a rutas Pendientes"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+            
+        if ruta.total_paquetes == 0:
+            return Response(
+                {"error": "La ruta debe tener minimo un paquete antes de asignar un conductr"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         
         conductor_id = request.data.get('conductor')
         
@@ -484,10 +495,11 @@ class RutaViewSet(viewsets.ModelViewSet):
                 ruta.conductor.estado = "Disponible"
                 ruta.conductor.save()
             
-            # Liberar vehículo
-            if ruta.vehiculo:
-                ruta.vehiculo.estado = "Disponible"
-                ruta.vehiculo.save()
+
+            # Liberar vehículo a través del conductor
+            if ruta.conductor and ruta.conductor.vehiculo:
+                ruta.conductor.vehiculo.estado = "Disponible"
+                ruta.conductor.vehiculo.save()
         
         return Response({
             "mensaje": f"Ruta cerrada con estado: {ruta.estado}",

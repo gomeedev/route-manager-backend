@@ -18,7 +18,7 @@ class VehiculoSerializer(serializers.ModelSerializer):
     
     def validate_placa(self, value):
         
-        if len(value) != 6:
+        if len(value) != 7:
             raise serializers.ValidationError("La placa debe tener exactamente 6 caracteres")
         return value
     
@@ -38,7 +38,7 @@ class VehiculoSerializer(serializers.ModelSerializer):
     def get_conductor_asignado(self, objeto):
         conductor_activo = objeto.drivers.filter(estado__in=["Disponible", "Asignado"]).first()
         if conductor_activo:
-            return conductor_activo.id_conductor
+            return f"{conductor_activo.conductor.nombre} {conductor_activo.conductor.apellido}"
         else:
             return "Sin asignar"
 
