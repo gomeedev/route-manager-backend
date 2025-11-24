@@ -21,7 +21,13 @@ class DriverViewSet(viewsets.ModelViewSet):
         
         estado = self.request.query_params.get("estado")
         if estado:
-            return queryset.filter(estado=estado)
+            queryset = queryset.filter(estado=estado)
+        
+        # AGREGAR ESTO: Filtrar por usuario_id
+        usuario_id = self.request.query_params.get("usuario_id")
+        if usuario_id:
+            queryset = queryset.filter(conductor_id=usuario_id)
+        
         return queryset
     
     

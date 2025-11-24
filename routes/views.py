@@ -269,6 +269,42 @@ class RutaViewSet(viewsets.ModelViewSet):
             "conductor_anterior": conductor_anterior.conductor.nombre if conductor_anterior else "Ninguno",
             "conductor_nuevo": nuevo_conductor.conductor.nombre
         })
+        
+
+    @action(detail=False, methods=['get'])
+    def ruta_actual(self, request):
+        """
+        Retorna la ruta asignada a un conductor específico.
+        Query Params: driver_id (requerido)
+        """
+        driver_id = request.query_params.get('driver_id')
+        
+        if not driver_id:
+            return Response(
+                {"error": "Se requiere el parámetro driver_id"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            ruta = Ruta.objects.filter(
+                conductor_id=driver_id,
+                estado__in=["Asignada", "En ruta"]
+            ).first()
+            
+            if not ruta:
+                return Response(
+                    {"mensaje": "No hay rutas asignadas"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            serializer = self.get_serializer(ruta)
+            return Response(serializer.data)
+            
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     
     @action(detail=True, methods=['post'])
