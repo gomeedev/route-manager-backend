@@ -1,24 +1,18 @@
 from rest_framework import serializers
-
 from django.utils import timezone
 
 from packages.models import Paquete
 from packages.serializer import PaqueteSerializer
-
 from drivers.models import Driver
 from drivers.serializer import DriverSerializer
 
 from .models import EntregaPaquete, Ruta
 
 
-
-
 class EntregaPaqueteSerializer(serializers.ModelSerializer):
 
     paquete_info = serializers.SerializerMethodField()
-    
     foto = serializers.ImageField(write_only=True, required=False)
-    
     
     class Meta:
         model = EntregaPaquete
@@ -30,40 +24,40 @@ class EntregaPaqueteSerializer(serializers.ModelSerializer):
         read_only_fields = ("id_entrega", "fecha_entrega", "imagen", )
 
  
-    def get_paquete_info(self, objetoeto):
-            return {
-                "id": objetoeto.paquete.id_paquete,
-                "direccion": objetoeto.paquete.direccion_entrega,
-                "cliente": objetoeto.paquete.cliente.nombre
-            }
+    def get_paquete_info(self, objeto):
+        return {
+            "id": objeto.paquete.id_paquete,
+            "direccion": objeto.paquete.direccion_entrega,
+            "cliente": objeto.paquete.cliente.nombre
+        }
          
    
     def validate(self, data):
-            paquete = data["paquete"]
-            ruta = data["ruta"]
-            
-            if paquete.ruta_id != ruta.id_ruta:
-                raise serializers.ValidationError("El paquete no pertenece a esta ruta")
-            
-            if paquete.estado_paquete in ["Entregado", "Fallido"]:
-                raise serializers.ValidationError("El paquete ya fue entregado")
-            
-            if ruta.estado != "En ruta":
-                raise serializers.ValidationError("Esta ruta no esta activa")
-            
-            return data
+        paquete = data["paquete"]
+        ruta = data["ruta"]
+        
+        if paquete.ruta_id != ruta.id_ruta:
+            raise serializers.ValidationError("El paquete no pertenece a esta ruta")
+        
+        if paquete.estado_paquete in ["Entregado", "Fallido"]:
+            raise serializers.ValidationError("El paquete ya fue entregado")
+        
+        if ruta.estado != "En ruta":
+            raise serializers.ValidationError("Esta ruta no esta activa")
+        
+        return data
     
     
     def create(self, validated_data):
         validated_data.pop('foto', None)
         entrega = super().create(validated_data)
 
-        
+        # Actualizar estado del paquete
         paquete = entrega.paquete
         paquete.estado_paquete = entrega.estado
         paquete.save()
         
-    
+        # Actualizar contadores de la ruta
         ruta = entrega.ruta
         if entrega.estado == "Entregado":
             ruta.paquetes_entregados += 1
@@ -71,22 +65,26 @@ class EntregaPaqueteSerializer(serializers.ModelSerializer):
             ruta.paquetes_fallidos += 1
         ruta.save()
 
+        # ✅ CAMBIO CRÍTICO: NO CERRAR LA RUTA AUTOMÁTICAMENTE
+        # El driver debe presionar "Finalizar ruta" manualmente
+        # para liberar estados de conductor y vehículo
         
-        total_paquetes_registrados = ruta.paquetes_entregados + ruta.paquetes_fallidos
-        
-
-        if total_paquetes_registrados == ruta.total_paquetes:
-            if ruta.paquetes_fallidos > ruta.paquetes_entregados:
-                ruta.estado = "Fallida"
-            else:
-                ruta.estado = "Completada"
-                
-            ruta.fecha_fin = timezone.now()
-            ruta.save()
-            
+        # COMENTAMOS ESTA SECCIÓN:
+        # total_paquetes_registrados = ruta.paquetes_entregados + ruta.paquetes_fallidos
+        # if total_paquetes_registrados == ruta.total_paquetes:
+        #     if ruta.paquetes_fallidos > ruta.paquetes_entregados:
+        #         ruta.estado = "Fallida"
+        #     else:
+        #         ruta.estado = "Completada"
+        #     ruta.fecha_fin = timezone.now()
+        #     ruta.save()
 
         return entrega    
-   
+
+
+# ============================================================================
+# RESTO DE SERIALIZERS SIN CAMBIOS
+# ============================================================================
 
 class RutaSerializer(serializers.ModelSerializer):
     
@@ -145,13 +143,12 @@ class RutaSerializer(serializers.ModelSerializer):
         return None
     
 
-    # En routes/serializer.py, línea 90-97:
     def get_conductor_ubicacion(self, obj):
         if not obj.conductor:
             return None
         return {
-            "lat": float(obj.conductor.ubicacion_actual_lat) if obj.conductor.ubicacion_actual_lat else None,  # ⬅️ Agrega float()
-            "lng": float(obj.conductor.ubicacion_actual_lng) if obj.conductor.ubicacion_actual_lng else None,  # ⬅️ Agrega float()
+            "lat": float(obj.conductor.ubicacion_actual_lat) if obj.conductor.ubicacion_actual_lat else None,
+            "lng": float(obj.conductor.ubicacion_actual_lng) if obj.conductor.ubicacion_actual_lng else None,
             "ultima_actualizacion": obj.conductor.ultima_actualizacion_ubicacion
         }
 
@@ -167,9 +164,7 @@ class RutaSerializer(serializers.ModelSerializer):
         
         return data
 
-    
 
-""" Hecho con IA """
 class RutaMonitoreoSerializer(serializers.ModelSerializer):
     # Ubicación en tiempo real del conductor
     conductor_ubicacion = serializers.SerializerMethodField()
@@ -241,4 +236,3 @@ class RutaMonitoreoSerializer(serializers.ModelSerializer):
             }
             for p in pendientes
         ]
-        
