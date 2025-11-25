@@ -417,10 +417,6 @@ class RutaViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def actualizar_ubicacion(self, request, pk=None):
-        """
-        Driver envía su ubicación actual durante la simulación.
-        Body: {"lat": 4.123, "lng": -74.456}
-        """
         ruta = self.get_object()
         
         if ruta.estado != "En ruta":
@@ -438,10 +434,10 @@ class RutaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Actualizar ubicación del conductor
+        # ⬇️ PROBLEMA: estás guardando correctamente
         if ruta.conductor:
-            ruta.conductor.ubicacion_actual_lat = lat
-            ruta.conductor.ubicacion_actual_lng = lng
+            ruta.conductor.ubicacion_actual_lat = lat   # ✅ Esto está bien
+            ruta.conductor.ubicacion_actual_lng = lng   # ✅ Esto está bien
             ruta.conductor.ultima_actualizacion_ubicacion = timezone.now()
             ruta.conductor.save()
         

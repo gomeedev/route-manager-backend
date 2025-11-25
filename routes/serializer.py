@@ -90,9 +90,22 @@ class EntregaPaqueteSerializer(serializers.ModelSerializer):
 
 class RutaSerializer(serializers.ModelSerializer):
     
-    conductor = serializers.PrimaryKeyRelatedField(queryset=Driver.objects.all(), write_only=True, required=False, allow_null=True)
+    conductor = serializers.PrimaryKeyRelatedField(
+        queryset=Driver.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
     
     conductor_detalle = DriverSerializer(source="conductor", read_only=True)
+    
+    conductor_nombre = serializers.CharField(
+        source="conductor.conductor.nombre",
+        read_only=True
+    )
+
+    conductor_ubicacion = serializers.SerializerMethodField()
+
     paquetes_asignados = PaqueteSerializer(source="paquetes", many=True, read_only=True)
     
     progreso = serializers.SerializerMethodField()
@@ -104,7 +117,8 @@ class RutaSerializer(serializers.ModelSerializer):
         fields = (
             "id_ruta", "codigo_manifiesto", "estado",
             "fecha_creacion", "fecha_inicio", "fecha_fin",
-            "conductor", "conductor_detalle",
+            "conductor", "conductor_detalle", "conductor_nombre",
+            "conductor_ubicacion",
             "ruta_optimizada", "distancia_total_km", "tiempo_estimado_minutos",
             "total_paquetes", "paquetes_entregados", "paquetes_fallidos",
             "paquetes_asignados", "progreso", "ultima_entrega"
@@ -130,15 +144,29 @@ class RutaSerializer(serializers.ModelSerializer):
             return EntregaPaqueteSerializer(ultima).data
         return None
     
-    
-    """ Hecho con IA """
+
+    # En routes/serializer.py, línea 90-97:
+    def get_conductor_ubicacion(self, obj):
+        if not obj.conductor:
+            return None
+        return {
+            "lat": float(obj.conductor.ubicacion_actual_lat) if obj.conductor.ubicacion_actual_lat else None,  # ⬅️ Agrega float()
+            "lng": float(obj.conductor.ubicacion_actual_lng) if obj.conductor.ubicacion_actual_lng else None,  # ⬅️ Agrega float()
+            "ultima_actualizacion": obj.conductor.ultima_actualizacion_ubicacion
+        }
+
+
     def validate(self, data):
         conductor = data.get('conductor')
         
-        if conductor and Ruta.objects.filter(conductor=conductor, estado__in=["Asignada", "En ruta"]).exists():
+        if conductor and Ruta.objects.filter(
+            conductor=conductor,
+            estado__in=["Asignada", "En ruta"]
+        ).exists():
             raise serializers.ValidationError({"conductor": "Este conductor ya tiene una ruta activa"})
         
         return data
+
     
 
 """ Hecho con IA """
