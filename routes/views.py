@@ -101,7 +101,7 @@ class RutaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # ✅ SOLUCIÓN: Asignar paquetes y actualizar contador en una sola transacción
+        # Asignar paquetes y actualizar contador en una sola transacción
         with transaction.atomic():
             # Actualizar los paquetes
             paquetes.update(
@@ -109,7 +109,7 @@ class RutaViewSet(viewsets.ModelViewSet):
                 estado_paquete="Asignado"
             )
             
-            # ✅ Usar el len() de la lista original en lugar de hacer un .count()
+            # Usar el len() de la lista original en lugar de hacer un .count()
             # Esto evita problemas de caché y asegura la precisión
             ruta.total_paquetes = ruta.total_paquetes + len(paquetes_ids)
             ruta.save()
@@ -538,6 +538,46 @@ class RutaViewSet(viewsets.ModelViewSet):
             "entregados": ruta.paquetes_entregados,
             "fallidos": ruta.paquetes_fallidos
         })
+        
+    
+    @action(detail=False, methods=['get']) 
+    def historial_conductor(self, request):
+        """
+        Retorna el historial de rutas Completadas -Fallidas de un conductor específico.
+        Query Params: driver_id
+        """
+        driver_id = request.query_params.get('driver_id')
+        
+        if not driver_id:
+            return Response(
+                {"error": "Debe proporcionar el id del conductor"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Verificar que el conductor exista
+            conductor = Driver.objects.get(id_conductor=driver_id)
+            
+            # Filtrar rutas completadas o fallidas del conductor
+            rutas = Ruta.objects.filter(
+                conductor=conductor,
+                estado__in=["Completada", "Fallida"]
+            ).select_related('conductor').prefetch_related('paquetes').order_by('-fecha_fin')
+            
+            serializer = self.get_serializer(rutas, many=True)
+            return Response(serializer.data)
+            
+        except Driver.DoesNotExist:
+            return Response(
+                {"error": "Conductor no encontrado"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
 
 
     @action(detail=True, methods=['get'])
