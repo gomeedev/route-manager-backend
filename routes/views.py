@@ -513,7 +513,7 @@ class RutaViewSet(viewsets.ModelViewSet):
             )
         
         with transaction.atomic():
-            # Determinar estado final
+
             if ruta.paquetes_fallidos > ruta.paquetes_entregados:
                 ruta.estado = "Fallida"
             else:
@@ -521,17 +521,21 @@ class RutaViewSet(viewsets.ModelViewSet):
             
             ruta.fecha_fin = timezone.now()
             ruta.save()
+                    
             
             # Liberar conductor
             if ruta.conductor:
+                # Lo guardo primero para luego declarar la fk como None
+                vehiculo = ruta.conductor.vehiculo
+                
                 ruta.conductor.estado = "Disponible"
+                ruta.conductor.vehiculo = None
                 ruta.conductor.save()
             
-
-            # Liberar vehículo a través del conductor
-            if ruta.conductor and ruta.conductor.vehiculo:
-                ruta.conductor.vehiculo.estado = "Disponible"
-                ruta.conductor.vehiculo.save()
+            
+            if vehiculo:
+                vehiculo = "Disponible"
+                vehiculo.save()
         
         return Response({
             "mensaje": f"Ruta cerrada con estado: {ruta.estado}",
