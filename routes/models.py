@@ -28,6 +28,7 @@ class Ruta(models.Model):
     fecha_fin = models.DateTimeField(null=True, blank=True)
     
     conductor = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, related_name="rutas")
+    vehiculo_usado = models.ForeignKey("vehicles.Vehiculo", on_delete=models.SET_NULL, null=True, blank=True, related_name="rutas_realizadas")
     
     ruta_optimizada = models.JSONField(null=True, blank=True)
     distancia_total_km = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)

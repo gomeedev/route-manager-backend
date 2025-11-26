@@ -65,7 +65,7 @@ class EntregaPaqueteSerializer(serializers.ModelSerializer):
             ruta.paquetes_fallidos += 1
         ruta.save()
 
-        # ✅ CAMBIO CRÍTICO: NO CERRAR LA RUTA AUTOMÁTICAMENTE
+        # CAMBIO CRÍTICO: NO CERRAR LA RUTA AUTOMÁTICAMENTE
         # El driver debe presionar "Finalizar ruta" manualmente
         # para liberar estados de conductor y vehículo
         
@@ -82,10 +82,6 @@ class EntregaPaqueteSerializer(serializers.ModelSerializer):
         return entrega    
 
 
-# ============================================================================
-# RESTO DE SERIALIZERS SIN CAMBIOS
-# ============================================================================
-
 class RutaSerializer(serializers.ModelSerializer):
     
     conductor = serializers.PrimaryKeyRelatedField(
@@ -101,6 +97,8 @@ class RutaSerializer(serializers.ModelSerializer):
         source="conductor.conductor.nombre",
         read_only=True
     )
+    
+    vehiculo_usado_detalle = serializers.SerializerMethodField()
 
     conductor_ubicacion = serializers.SerializerMethodField()
 
@@ -119,13 +117,25 @@ class RutaSerializer(serializers.ModelSerializer):
             "conductor_ubicacion",
             "ruta_optimizada", "distancia_total_km", "tiempo_estimado_minutos",
             "total_paquetes", "paquetes_entregados", "paquetes_fallidos",
-            "paquetes_asignados", "progreso", "ultima_entrega"
+            "paquetes_asignados", "progreso", "ultima_entrega", "vehiculo_usado", "vehiculo_usado_detalle",
         )
         read_only_fields = (
             "id_ruta", "codigo_manifiesto", "fecha_creacion",
             "total_paquetes", "paquetes_entregados", "paquetes_fallidos"
         )
-        
+     
+     
+     
+     
+    def get_vehiculo_usado_detalle(self, objeto):
+        if objeto.vehiculo_usado:
+            return {
+                "tipo": objeto.vehiculo_usado.tipo,
+                "placa": objeto.vehiculo_usado.placa,
+                "estado": objeto.vehiculo_usado.estado
+            }
+        return None   
+    
     
     def get_progreso(self, objeto):
         if objeto.total_paquetes == 0:

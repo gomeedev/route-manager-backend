@@ -393,6 +393,10 @@ class RutaViewSet(viewsets.ModelViewSet):
             # Cambiar estado de ruta
             ruta.estado = "En ruta"
             ruta.fecha_inicio = timezone.now()
+            
+            if ruta.conductor and ruta.conductor.vehiculo:
+                ruta.vehiculo_usado = ruta.conductor.vehiculo
+                
             ruta.save()
             
             # Cambiar estado de paquetes
@@ -534,7 +538,7 @@ class RutaViewSet(viewsets.ModelViewSet):
             
             
             if vehiculo:
-                vehiculo = "Disponible"
+                vehiculo.estado = "Disponible"
                 vehiculo.save()
         
         return Response({
