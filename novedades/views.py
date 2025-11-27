@@ -19,22 +19,38 @@ class NovedadListCreateView(generics.ListCreateAPIView):
     serializer_class = NovedadSerializer
     
     def get_queryset(self):
-        user = self.request.user
-        print(f"Usuario: {user}, Rol: {user.rol.nombre_rol if hasattr(user, 'rol') else 'No tiene rol'}")
-        
-        if not isinstance(user, Usuario):
-            return Novedad.objects.none()
-        
-        if user.rol.nombre_rol == "admin":
-            return Novedad.objects.all()
-        
-        elif user.rol.nombre_rol == "driver":
-            try:
-                driver = Driver.objects.get(conductor=user)
-                return Novedad.objects.filter(conductor=driver)
-            except Driver.DoesNotExist:
+            user = self.request.user
+            print(f"Usuario: {user}, Rol: {user.rol.nombre_rol if hasattr(user, 'rol') else 'No tiene rol'}")
+            
+            if not isinstance(user, Usuario):
                 return Novedad.objects.none()
-        return Novedad.objects.none()
+            
+            leida = self.request.query_params.get('leida', None)
+            
+            if user.rol.nombre_rol == "admin":
+                queryset = Novedad.objects.all()
+                
+                # Filtrar por leida si se envió el parámetro
+                if leida is not None:
+                    leida_bool = leida.lower() == 'true'
+                    queryset = queryset.filter(leida=leida_bool)
+                
+                return queryset
+            
+            elif user.rol.nombre_rol == "driver":
+                try:
+                    driver = Driver.objects.get(conductor=user)
+                    queryset = Novedad.objects.filter(conductor=driver)
+                    
+                    # Filtrar por leida si se envió el parámetro
+                    if leida is not None:
+                        leida_bool = leida.lower() == 'true'
+                        queryset = queryset.filter(leida=leida_bool)
+                    
+                    return queryset
+                except Driver.DoesNotExist:
+                    return Novedad.objects.none()
+            return Novedad.objects.none()
     
     
     def handle_imagen(self, novedad, archivo):

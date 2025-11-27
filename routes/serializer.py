@@ -52,10 +52,14 @@ class EntregaPaqueteSerializer(serializers.ModelSerializer):
         validated_data.pop('foto', None)
         entrega = super().create(validated_data)
 
-        # Actualizar estado del paquete
+        """  Actualizar estado del paquete """
         paquete = entrega.paquete
         paquete.estado_paquete = entrega.estado
+        # Marcar entrega del paquete
+        paquete.fecha_entrega = entrega.fecha_entrega
         paquete.save()
+    
+        
         
         # Actualizar contadores de la ruta
         ruta = entrega.ruta
@@ -65,19 +69,6 @@ class EntregaPaqueteSerializer(serializers.ModelSerializer):
             ruta.paquetes_fallidos += 1
         ruta.save()
 
-        # CAMBIO CRÍTICO: NO CERRAR LA RUTA AUTOMÁTICAMENTE
-        # El driver debe presionar "Finalizar ruta" manualmente
-        # para liberar estados de conductor y vehículo
-        
-        # COMENTAMOS ESTA SECCIÓN:
-        # total_paquetes_registrados = ruta.paquetes_entregados + ruta.paquetes_fallidos
-        # if total_paquetes_registrados == ruta.total_paquetes:
-        #     if ruta.paquetes_fallidos > ruta.paquetes_entregados:
-        #         ruta.estado = "Fallida"
-        #     else:
-        #         ruta.estado = "Completada"
-        #     ruta.fecha_fin = timezone.now()
-        #     ruta.save()
 
         return entrega    
 
