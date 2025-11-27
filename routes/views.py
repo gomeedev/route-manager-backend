@@ -309,65 +309,73 @@ class RutaViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def calcular_ruta(self, request, pk=None):
-        """
-        Calcula la ruta optimizada usando OSRM.
-        Guarda polyline, distancia y tiempo estimado.
-        """
         ruta = self.get_object()
         
         if ruta.total_paquetes == 0:
-            return Response(
-                {"error": "No hay paquetes asignados a esta ruta"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Obtener paquetes ordenados
+            return Response({"error": "No hay paquetes"}, status=400)
+
         paquetes = ruta.paquetes.all().order_by('id_paquete')
         
-        # Extraer coordenadas
+        # PUNTO CLAVE: punto de partida = última posición conocida del conductor
         coordenadas = []
-        for paquete in paquetes:
-            if not paquete.lat or not paquete.lng:
-                return Response(
-                    {"error": f"El paquete {paquete.id_paquete} no tiene coordenadas"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            coordenadas.append((float(paquete.lat), float(paquete.lng)))
+        punto_inicio = None
         
-        # Llamar a OSRM
-        resultado = OSMService.calcular_ruta_optimizada(coordenadas)
-        
-        if not resultado:
-            return Response(
-                {"error": "No se pudo calcular la ruta. Verifica las coordenadas."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        if ruta.conductor and ruta.conductor.ubicacion_actual_lat and ruta.conductor.ubicacion_actual_lng:
+            punto_inicio = (
+                float(ruta.conductor.ubicacion_actual_lat),
+                float(ruta.conductor.ubicacion_actual_lng)
             )
-        
-        # Guardar resultado
+            coordenadas.append(punto_inicio)
+
+        # Agregar paquetes
+        for p in paquetes:
+            if not p.lat or not p.lng:
+                return Response({"error": f"Paquete {p.id_paquete} sin coordenadas"}, status=400)
+            coordenadas.append((float(p.lat), float(p.lng)))
+
+        # Si no hay ubicación → usar primer paquete como inicio
+        if len(coordenadas) <= 1:
+            return Response({"error": "No hay puntos válidos"}, status=400)
+
+        resultado = OSMService.calcular_ruta_optimizada(coordenadas)
+
+        if not resultado:
+            return Response({"error": "Error OSRM"}, status=500)
+
         with transaction.atomic():
             ruta.ruta_optimizada = {
                 "polyline": resultado['polyline'],
                 "geometry": resultado['geometry'],
-                "orden": resultado['orden']
+                "orden": resultado['orden'],
+                "punto_inicio_real": punto_inicio  # nuevo campo útil
             }
             ruta.distancia_total_km = resultado['distancia_km']
             ruta.tiempo_estimado_minutos = resultado['duracion_minutos']
             ruta.save()
-            
-            # Asignar orden de entrega según resultado de OSRM
-            for idx, paquete_idx in enumerate(resultado['orden'], start=1):
+
+            # Reemplaza desde el comentario "Ajustar orden" hasta el final
+            orden_real = resultado['orden']
+
+            # Si hay punto_inicio → el primer punto es el conductor (índice 0), saltarlo
+            if punto_inicio:
+                # OSRM devuelve orden de TODOS los puntos (incluyendo conductor al inicio)
+                # Ej: [0, 2, 1] → significa: conductor → paquete2 → paquete1
+                # Queremos solo los índices de paquetes: [2, 1] → restamos 1 a cada uno
+                orden_real = [i - 1 for i in resultado['orden'][1:]]  # ← ¡AQUÍ ESTABA EL ERROR!
+            else:
+                # Sin conductor → orden directo
+                orden_real = resultado['orden']
+
+            for idx, paquete_idx in enumerate(orden_real, start=1):
                 paquete = paquetes[paquete_idx]
                 paquete.orden_entrega = idx
                 paquete.save()
-        
-        return Response({
-            "mensaje": "Ruta calculada correctamente",
-            "distancia_km": ruta.distancia_total_km,
-            "tiempo_estimado_minutos": ruta.tiempo_estimado_minutos,
-            "orden_paquetes": [paquetes[i].id_paquete for i in resultado['orden']],
-            "geometry": resultado['geometry']  # Para dibujar en el mapa
-        })
 
+        return Response({
+            "mensaje": "Ruta calculada desde ubicación actual del conductor",
+            "geometry": resultado['geometry'],
+            "punto_inicio": punto_inicio
+        })
     
     
     @action(detail=True, methods=['post'])
@@ -438,10 +446,10 @@ class RutaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # ⬇️ PROBLEMA: estás guardando correctamente
+
         if ruta.conductor:
-            ruta.conductor.ubicacion_actual_lat = lat   # ✅ Esto está bien
-            ruta.conductor.ubicacion_actual_lng = lng   # ✅ Esto está bien
+            ruta.conductor.ubicacion_actual_lat = lat 
+            ruta.conductor.ubicacion_actual_lng = lng 
             ruta.conductor.ultima_actualizacion_ubicacion = timezone.now()
             ruta.conductor.save()
         

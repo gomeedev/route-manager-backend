@@ -130,8 +130,10 @@ class RutaSerializer(serializers.ModelSerializer):
     def get_vehiculo_usado_detalle(self, objeto):
         if objeto.vehiculo_usado:
             return {
+                "id_vehiculo": objeto.vehiculo_usado.id_vehiculo,
                 "tipo": objeto.vehiculo_usado.tipo,
                 "placa": objeto.vehiculo_usado.placa,
+                "imagen": objeto.vehiculo_usado.imagen,
                 "estado": objeto.vehiculo_usado.estado
             }
         return None   
