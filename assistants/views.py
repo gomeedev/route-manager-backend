@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from .services import AsistenteIAService
+from .example import ExampleAssistant
 
 
 @api_view(['POST'])
@@ -45,3 +46,20 @@ def consultar_asistente(request):
             {"error": resultado['error']},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+        
+
+@api_view(["POST"])
+def example_assistant(request):
+    if request.method == "POST":
+        
+        pregunta = request.data.get('pregunta')
+        
+        model_example = ExampleAssistant()
+        resultado = model_example.consultar(pregunta)
+        
+        return Response ({
+            "query": pregunta,
+            "response": resultado
+        })
+        
+    return Response ({"error": "Debe proporcionar un método valido"})

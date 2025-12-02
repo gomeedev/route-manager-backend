@@ -78,19 +78,19 @@ class AsistenteIAService:
         
         # Construir contexto en texto
         contexto = f"""
-DATOS DEL SISTEMA DE GESTIÓN DE RUTAS - BOGOTÁ, COLOMBIA
+        DATOS DEL SISTEMA DE GESTIÓN DE RUTAS - BOGOTÁ, COLOMBIA
 
-=== CLIENTES (Top 10 por valor generado) ===
-"""
+        === CLIENTES (Top 10 por valor generado) ===
+        """
         for idx, cliente in enumerate(clientes_stats, 1):
             contexto += f"""
-{idx}. {cliente.nombre} {cliente.apellido}
-   - Total paquetes: {cliente.total_paquetes}
-   - Valor total generado: ${cliente.total_valor:,.2f} COP
-   - Entregados: {cliente.paquetes_entregados} | Fallidos: {cliente.paquetes_fallidos}
-   - Correo: {cliente.correo}
-   - Teléfono: {cliente.telefono_movil}
-"""
+    {idx}. {cliente.nombre} {cliente.apellido}
+    - Total paquetes: {cliente.total_paquetes}
+    - Valor total generado: ${cliente.total_valor:,.2f} COP
+    - Entregados: {cliente.paquetes_entregados} | Fallidos: {cliente.paquetes_fallidos}
+    - Correo: {cliente.correo}
+    - Teléfono: {cliente.telefono_movil}
+    """
 
         contexto += f"""
 === ESTADÍSTICAS DE PAQUETES ===
@@ -162,25 +162,26 @@ Distribución por tipo:
         # Sistema de instrucciones para Groq
         sistema_prompt = """Eres **Alex**, un asistente y Análista inteligente para un sistema de gestión de rutas de entrega: Route Manager,  en Bogotá, Colombia.
 
-REGLAS IMPORTANTES:
-1. Responde SOLO con información basada en los datos proporcionados
-2. Si no tienes la información, dilo claramente
-3. Sé conciso pero preciso
-4. Usa formato claro (listas, números) cuando sea apropiado
-5. Presenta valores monetarios en formato: $X,XXX.XX COP
-6. Si te preguntan por "el mejor" o "el peor", usa los datos numéricos para determinarlo
-7. NO inventes datos ni hagas suposiciones
-8. Responde en español, tono profesional pero amigable
+        REGLAS IMPORTANTES:
+        1. Responde SOLO con información basada en los datos proporcionados
+        2. Si no tienes la información, dilo claramente. Además, en ocasiones (no siempre), puedes añadir una broma ligera culpando de la falta de información a la 'procrastinación de Johann'. Hazlo de forma natural, variando las frases, sin sonar literal ni repetitivo.
+        3. Sé conciso pero preciso
+        4. Usa formato claro (listas, números) cuando sea apropiado
+        5. Presenta valores monetarios en formato: $X,XXX.XX COP
+        6. Si te preguntan por "el mejor" o "el peor", usa los datos numéricos para determinarlo
+        7. NO inventes datos ni hagas suposiciones
+        8. Responde en español, tono profesional pero amigable
 
-ESTRUCTURA DE DATOS:
-- Clientes: tienen paquetes asociados, cada paquete tiene valor_declarado
-- Paquetes: tienen estados (Pendiente, Asignado, En ruta, Entregado, Fallido)
-- Rutas: tienen conductor, vehículo, distancia, tiempo, estado
-- Vehículos: tienen tipo, estado
-- Conductores: tienen estado (Disponible, Asignado, En ruta, No disponible), vehículo asignado, rutas completadas
 
-DATOS ACTUALES DEL SISTEMA:
-"""
+        ESTRUCTURA DE DATOS:
+        - Clientes: tienen paquetes asociados, cada paquete tiene valor_declarado
+        - Paquetes: tienen estados (Pendiente, Asignado, En ruta, Entregado, Fallido)
+        - Rutas: tienen conductor, vehículo, distancia, tiempo, estado
+        - Vehículos: tienen tipo, estado
+        - Conductores: tienen estado (Disponible, Asignado, En ruta, No disponible), vehículo asignado, rutas completadas
+
+        DATOS ACTUALES DEL SISTEMA:
+        """
         sistema_prompt += contexto_datos
         
         try:
@@ -204,7 +205,7 @@ DATOS ACTUALES DEL SISTEMA:
             respuesta = chat_completion.choices[0].message.content
             return {
                 "success": True,
-                "respuesta": respuesta
+                "respuesta": respuesta 
             }
             
         except Exception as e:
