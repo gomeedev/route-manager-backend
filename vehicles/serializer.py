@@ -6,15 +6,22 @@ from empresa.models import Empresa
 
 class VehiculoSerializer(serializers.ModelSerializer):
     
-    ruta_asignada = serializers.SerializerMethodField()
+    conductor_asignado = serializers.SerializerMethodField()
     foto = serializers.ImageField(write_only=True, required=True)
     
     
     class Meta:
         model = Vehiculo
-        fields = ("id_vehiculo", "tipo", "placa", "imagen", "estado", "ruta_asignada", "foto")
+        fields = ("id_vehiculo", "tipo", "placa", "imagen", "estado", "conductor_asignado", "foto")
         read_only_fields = ("id_vehiculo", "imagen")
         
+    
+    def validate_placa(self, value):
+        
+        if len(value) != 7:
+            raise serializers.ValidationError("La placa debe tener exactamente 6 caracteres")
+        return value
+    
 
     def create(self, validated_data):
 
@@ -22,7 +29,16 @@ class VehiculoSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
     
     
-    def get_ruta_asignada(self, objeto):
-        ruta_activa = objeto.rutas.filter(estado__in=["Asignada", "En ruta"]).first()
-        return ruta_activa.id_ruta if ruta_activa else "Sin asignar"
+    def update(self, instance, validated_data):
         
+        validated_data.pop('foto', None)
+        return super().update(instance, validated_data)
+    
+    
+    def get_conductor_asignado(self, objeto):
+        conductor_activo = objeto.drivers.filter(estado__in=["Disponible", "Asignado"]).first()
+        if conductor_activo:
+            return f"{conductor_activo.conductor.nombre} {conductor_activo.conductor.apellido}"
+        else:
+            return "Sin asignar"
+

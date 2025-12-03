@@ -80,6 +80,11 @@ class Paquete(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="paquetes")
     localidad = models.ForeignKey(Localidad, on_delete=models.PROTECT, default=None)
     
+    destinatario_nombre = models.CharField(max_length=20, default="Sin nombre")
+    destinatario_apellido = models.CharField(max_length=20, default="Sin apellido")
+    destinatario_telefono = models.CharField(max_length=10, null=True)
+    destinatario_correo = models.EmailField(max_length=50, default="Sin correo") 
+    
     # Google Maps
     lat = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     lng = models.DecimalField(max_digits=11, decimal_places=7, null=True, blank=True) 

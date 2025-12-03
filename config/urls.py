@@ -28,6 +28,9 @@ urlpatterns = [
     # Endpoints de rutas y entregas
     path("api/v1/rutas/", include("routes.urls")),
     
+    # Consulta hacia el modelo
+    path('api/v1/asistente/', include('assistants.urls')),
+    
     # Mòdulo del admin
     path('admin/', admin.site.urls),
     

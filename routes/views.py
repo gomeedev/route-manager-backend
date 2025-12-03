@@ -28,7 +28,7 @@ from .pdf import generar_pdf_ruta
 @extend_schema(tags=["Endpoints rutas"])
 class RutaViewSet(viewsets.ModelViewSet):
     serializer_class = RutaSerializer
-    queryset = Ruta.objects.select_related('conductor', 'vehiculo').prefetch_related('paquetes').all()
+    queryset = Ruta.objects.select_related('conductor').prefetch_related('paquetes').all()
     
     
     def get_queryset(self):
@@ -68,9 +68,9 @@ class RutaViewSet(viewsets.ModelViewSet):
         """
         ruta = self.get_object()
         
-        if ruta.estado not in ["Pendiente", "Asignada"]:
+        if ruta.estado != "Pendiente":
             return Response(
-                {"error": "Solo puedes asignar paquetes a rutas Pendientes o Asignadas"},
+                {"error": "Solo puedes asignar paquetes a rutas Pendientes"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -81,6 +81,8 @@ class RutaViewSet(viewsets.ModelViewSet):
                 {"error": "Debes proporcionar al menos un paquete"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+        print("DEBUG asignar_paquetes: paquetes_ids =", paquetes_ids)
         
         # Verificar que todos los paquetes existen y están disponibles
         paquetes = Paquete.objects.filter(id_paquete__in=paquetes_ids)
@@ -99,24 +101,25 @@ class RutaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Asignar paquetes
+        # Asignar paquetes y actualizar contador en una sola transacción
         with transaction.atomic():
+            # Actualizar los paquetes
             paquetes.update(
                 ruta=ruta,
                 estado_paquete="Asignado"
             )
             
-            # Actualizar contador - usar len() en lugar de .count()
-            ruta.total_paquetes = ruta.paquetes.count()  # Refrescar desde BD
-            ruta.estado = "Asignada"
+            # Usar el len() de la lista original en lugar de hacer un .count()
+            # Esto evita problemas de caché y asegura la precisión
+            ruta.total_paquetes = ruta.total_paquetes + len(paquetes_ids)
             ruta.save()
-            
-            # Refrescar el objeto para obtener el valor actualizado
-            ruta.refresh_from_db()
+        
+        # Refrescar el objeto después de la transacción
+        ruta.refresh_from_db()
         
         return Response({
             "mensaje": f"{len(paquetes_ids)} paquetes asignados correctamente",
-            "total_paquetes": ruta.total_paquetes  # Ahora debería ser correcto
+            "total_paquetes": ruta.total_paquetes
         })
         
     
@@ -128,11 +131,18 @@ class RutaViewSet(viewsets.ModelViewSet):
         """
         ruta = self.get_object()
         
-        if ruta.estado not in ["Pendiente", "Asignada"]:
+        if ruta.estado != "Pendiente":
             return Response(
-                {"error": "Solo puedes asignar conductores a rutas Pendientes o Asignadas"},
+                {"error": "Solo puedes asignar conductores a rutas Pendientes"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+            
+        if ruta.total_paquetes == 0:
+            return Response(
+                {"error": "La ruta debe tener minimo un paquete antes de asignar un conductr"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         
         conductor_id = request.data.get('conductor')
         
@@ -151,9 +161,16 @@ class RutaViewSet(viewsets.ModelViewSet):
             )
         
         # Verificar que el conductor esté disponible
-        if conductor.estado != "disponible":
+        if conductor.estado != "Disponible":
             return Response(
                 {"error": f"El conductor está {conductor.estado}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verificar que tenga vehículo asignado
+        if not conductor.vehiculo:
+            return Response(
+                {"error": "El conductor no tiene un vehículo asignado"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -167,136 +184,198 @@ class RutaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Asignar conductor
-        ruta.conductor = conductor
-        ruta.save()
+        with transaction.atomic():
+            # Asignar conductor
+            ruta.conductor = conductor
+            ruta.estado = "Asignada"  # CAMBIO AQUÍ
+            ruta.save()
+            
+            # Cambiar estado del conductor a Asignado
+            conductor.estado = "Asignado"  # CAMBIO AQUÍ
+            conductor.save()
         
         return Response({
             "mensaje": "Conductor asignado correctamente",
             "conductor": conductor.conductor.nombre,
             "ruta": ruta.codigo_manifiesto
         })
-
-
-    @action(detail=True, methods=['post'])
-    def asignar_vehiculo(self, request, pk=None):
+        
+    
+    @action(detail=True, methods=['patch'])
+    def reemplazar_conductor(self, request, pk=None):
         """
-        Asigna un vehículo a la ruta.
-        Body: {"vehiculo": 1}
+        Reemplaza el conductor de una ruta Asignada.
+        Body: {"conductor": 5}
         """
         ruta = self.get_object()
         
-        if ruta.estado not in ["Pendiente", "Asignada"]:
+        if ruta.estado != "Asignada":
             return Response(
-                {"error": "Solo puedes asignar vehículos a rutas Pendientes o Asignadas"},
+                {"error": "Solo puedes reemplazar conductores en rutas Asignadas"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        vehiculo_id = request.data.get('vehiculo')
+        nuevo_conductor_id = request.data.get('conductor')
         
-        if not vehiculo_id:
+        if not nuevo_conductor_id:
             return Response(
-                {"error": "Debes proporcionar el ID del vehículo"},
+                {"error": "Debes proporcionar el ID del nuevo conductor"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         try:
-            vehiculo = Vehiculo.objects.get(id_vehiculo=vehiculo_id)
-        except Vehiculo.DoesNotExist:
+            nuevo_conductor = Driver.objects.get(id_conductor=nuevo_conductor_id)
+        except Driver.DoesNotExist:
             return Response(
-                {"error": "Vehículo no encontrado"},
+                {"error": "Conductor no encontrado"},
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # Verificar que el vehículo esté disponible
-        if vehiculo.estado != "Disponible":
+        # Validaciones del nuevo conductor
+        if nuevo_conductor.estado != "Disponible":
             return Response(
-                {"error": f"El vehículo está {vehiculo.estado}"},
+                {"error": f"El conductor está {nuevo_conductor.estado}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Verificar que no tenga ruta activa
-        if Ruta.objects.filter(
-            vehiculo=vehiculo,
-            estado__in=["Asignada", "En ruta"]
-        ).exists():
+        if not nuevo_conductor.vehiculo:
             return Response(
-                {"error": "Este vehículo ya está en uso"},
+                {"error": "El conductor no tiene un vehículo asignado"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Asignar vehículo
-        ruta.vehiculo = vehiculo
-        ruta.save()
+        if Ruta.objects.filter(conductor=nuevo_conductor, estado__in=["Asignada", "En ruta"]).exists():
+            return Response(
+                {"error": "Este conductor ya tiene una ruta activa"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        with transaction.atomic():
+            # Liberar conductor anterior
+            conductor_anterior = ruta.conductor
+            if conductor_anterior:
+                conductor_anterior.estado = "Disponible"
+                conductor_anterior.save()
+            
+            # Asignar nuevo conductor
+            ruta.conductor = nuevo_conductor
+            ruta.save()
+            
+            nuevo_conductor.estado = "Asignado"
+            nuevo_conductor.save()
         
         return Response({
-            "mensaje": "Vehículo asignado correctamente",
-            "vehiculo": vehiculo.placa,
-            "ruta": ruta.codigo_manifiesto
+            "mensaje": "Conductor reemplazado correctamente",
+            "conductor_anterior": conductor_anterior.conductor.nombre if conductor_anterior else "Ninguno",
+            "conductor_nuevo": nuevo_conductor.conductor.nombre
         })
+        
+
+    @action(detail=False, methods=['get'])
+    def ruta_actual(self, request):
+        """
+        Retorna la ruta asignada a un conductor específico.
+        Query Params: driver_id (requerido)
+        """
+        driver_id = request.query_params.get('driver_id')
+        
+        if not driver_id:
+            return Response(
+                {"error": "Se requiere el parámetro driver_id"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            ruta = Ruta.objects.filter(
+                conductor_id=driver_id,
+                estado__in=["Asignada", "En ruta"]
+            ).first()
+            
+            if not ruta:
+                return Response(
+                    {"mensaje": "No hay rutas asignadas"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            serializer = self.get_serializer(ruta)
+            return Response(serializer.data)
+            
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     
     @action(detail=True, methods=['post'])
     def calcular_ruta(self, request, pk=None):
-        """
-        Calcula la ruta optimizada usando OSRM.
-        Guarda polyline, distancia y tiempo estimado.
-        """
         ruta = self.get_object()
         
         if ruta.total_paquetes == 0:
-            return Response(
-                {"error": "No hay paquetes asignados a esta ruta"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Obtener paquetes ordenados
+            return Response({"error": "No hay paquetes"}, status=400)
+
         paquetes = ruta.paquetes.all().order_by('id_paquete')
         
-        # Extraer coordenadas
+        # PUNTO CLAVE: punto de partida = última posición conocida del conductor
         coordenadas = []
-        for paquete in paquetes:
-            if not paquete.lat or not paquete.lng:
-                return Response(
-                    {"error": f"El paquete {paquete.id_paquete} no tiene coordenadas"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            coordenadas.append((float(paquete.lat), float(paquete.lng)))
+        punto_inicio = None
         
-        # Llamar a OSRM
-        resultado = OSMService.calcular_ruta_optimizada(coordenadas)
-        
-        if not resultado:
-            return Response(
-                {"error": "No se pudo calcular la ruta. Verifica las coordenadas."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        if ruta.conductor and ruta.conductor.ubicacion_actual_lat and ruta.conductor.ubicacion_actual_lng:
+            punto_inicio = (
+                float(ruta.conductor.ubicacion_actual_lat),
+                float(ruta.conductor.ubicacion_actual_lng)
             )
-        
-        # Guardar resultado
+            coordenadas.append(punto_inicio)
+
+        # Agregar paquetes
+        for p in paquetes:
+            if not p.lat or not p.lng:
+                return Response({"error": f"Paquete {p.id_paquete} sin coordenadas"}, status=400)
+            coordenadas.append((float(p.lat), float(p.lng)))
+
+        # Si no hay ubicación → usar primer paquete como inicio
+        if len(coordenadas) <= 1:
+            return Response({"error": "No hay puntos válidos"}, status=400)
+
+        resultado = OSMService.calcular_ruta_optimizada(coordenadas)
+
+        if not resultado:
+            return Response({"error": "Error OSRM"}, status=500)
+
         with transaction.atomic():
             ruta.ruta_optimizada = {
                 "polyline": resultado['polyline'],
                 "geometry": resultado['geometry'],
-                "orden": resultado['orden']
+                "orden": resultado['orden'],
+                "punto_inicio_real": punto_inicio  # nuevo campo útil
             }
             ruta.distancia_total_km = resultado['distancia_km']
             ruta.tiempo_estimado_minutos = resultado['duracion_minutos']
             ruta.save()
-            
-            # Asignar orden de entrega según resultado de OSRM
-            for idx, paquete_idx in enumerate(resultado['orden'], start=1):
+
+            # Reemplaza desde el comentario "Ajustar orden" hasta el final
+            orden_real = resultado['orden']
+
+            # Si hay punto_inicio → el primer punto es el conductor (índice 0), saltarlo
+            if punto_inicio:
+                # OSRM devuelve orden de TODOS los puntos (incluyendo conductor al inicio)
+                # Ej: [0, 2, 1] → significa: conductor → paquete2 → paquete1
+                # Queremos solo los índices de paquetes: [2, 1] → restamos 1 a cada uno
+                orden_real = [i - 1 for i in resultado['orden'][1:]]  # ← ¡AQUÍ ESTABA EL ERROR!
+            else:
+                # Sin conductor → orden directo
+                orden_real = resultado['orden']
+
+            for idx, paquete_idx in enumerate(orden_real, start=1):
                 paquete = paquetes[paquete_idx]
                 paquete.orden_entrega = idx
                 paquete.save()
-        
-        return Response({
-            "mensaje": "Ruta calculada correctamente",
-            "distancia_km": ruta.distancia_total_km,
-            "tiempo_estimado_minutos": ruta.tiempo_estimado_minutos,
-            "orden_paquetes": [paquetes[i].id_paquete for i in resultado['orden']],
-            "geometry": resultado['geometry']  # Para dibujar en el mapa
-        })
 
+        return Response({
+            "mensaje": "Ruta calculada desde ubicación actual del conductor",
+            "geometry": resultado['geometry'],
+            "punto_inicio": punto_inicio
+        })
     
     
     @action(detail=True, methods=['post'])
@@ -322,6 +401,10 @@ class RutaViewSet(viewsets.ModelViewSet):
             # Cambiar estado de ruta
             ruta.estado = "En ruta"
             ruta.fecha_inicio = timezone.now()
+            
+            if ruta.conductor and ruta.conductor.vehiculo:
+                ruta.vehiculo_usado = ruta.conductor.vehiculo
+                
             ruta.save()
             
             # Cambiar estado de paquetes
@@ -329,13 +412,13 @@ class RutaViewSet(viewsets.ModelViewSet):
             
             # Cambiar estado del conductor
             if ruta.conductor:
-                ruta.conductor.estado = "en_ruta"
+                ruta.conductor.estado = "En ruta"
                 ruta.conductor.save()
             
             # Cambiar estado del vehículo
-            if ruta.vehiculo:
-                ruta.vehiculo.estado = "En ruta"
-                ruta.vehiculo.save()
+            if ruta.conductor.vehiculo:
+                ruta.conductor.vehiculo.estado = "En ruta"
+                ruta.conductor.vehiculo.save()
         
         return Response({
             "mensaje": "Ruta iniciada correctamente",
@@ -346,10 +429,6 @@ class RutaViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def actualizar_ubicacion(self, request, pk=None):
-        """
-        Driver envía su ubicación actual durante la simulación.
-        Body: {"lat": 4.123, "lng": -74.456}
-        """
         ruta = self.get_object()
         
         if ruta.estado != "En ruta":
@@ -367,10 +446,10 @@ class RutaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Actualizar ubicación del conductor
+
         if ruta.conductor:
-            ruta.conductor.ubicacion_actual_lat = lat
-            ruta.conductor.ubicacion_actual_lng = lng
+            ruta.conductor.ubicacion_actual_lat = lat 
+            ruta.conductor.ubicacion_actual_lng = lng 
             ruta.conductor.ultima_actualizacion_ubicacion = timezone.now()
             ruta.conductor.save()
         
@@ -446,7 +525,7 @@ class RutaViewSet(viewsets.ModelViewSet):
             )
         
         with transaction.atomic():
-            # Determinar estado final
+
             if ruta.paquetes_fallidos > ruta.paquetes_entregados:
                 ruta.estado = "Fallida"
             else:
@@ -454,22 +533,67 @@ class RutaViewSet(viewsets.ModelViewSet):
             
             ruta.fecha_fin = timezone.now()
             ruta.save()
+                    
             
             # Liberar conductor
             if ruta.conductor:
-                ruta.conductor.estado = "disponible"
+                # Lo guardo primero para luego declarar la fk como None
+                vehiculo = ruta.conductor.vehiculo
+                
+                ruta.conductor.estado = "Disponible"
+                ruta.conductor.vehiculo = None
                 ruta.conductor.save()
             
-            # Liberar vehículo
-            if ruta.vehiculo:
-                ruta.vehiculo.estado = "Disponible"
-                ruta.vehiculo.save()
+            
+            if vehiculo:
+                vehiculo.estado = "Disponible"
+                vehiculo.save()
         
         return Response({
             "mensaje": f"Ruta cerrada con estado: {ruta.estado}",
             "entregados": ruta.paquetes_entregados,
             "fallidos": ruta.paquetes_fallidos
         })
+        
+    
+    @action(detail=False, methods=['get']) 
+    def historial_conductor(self, request):
+        """
+        Retorna el historial de rutas Completadas -Fallidas de un conductor específico.
+        Query Params: driver_id
+        """
+        driver_id = request.query_params.get('driver_id')
+        
+        if not driver_id:
+            return Response(
+                {"error": "Debe proporcionar el id del conductor"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Verificar que el conductor exista
+            conductor = Driver.objects.get(id_conductor=driver_id)
+            
+            # Filtrar rutas completadas o fallidas del conductor
+            rutas = Ruta.objects.filter(
+                conductor=conductor,
+                estado__in=["Completada", "Fallida"]
+            ).select_related('conductor').prefetch_related('paquetes').order_by('-fecha_fin')
+            
+            serializer = self.get_serializer(rutas, many=True)
+            return Response(serializer.data)
+            
+        except Driver.DoesNotExist:
+            return Response(
+                {"error": "Conductor no encontrado"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
 
 
     @action(detail=True, methods=['get'])

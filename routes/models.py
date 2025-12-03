@@ -3,12 +3,11 @@ from django.utils import timezone
 
 from django.utils.crypto import get_random_string
 
-from vehicles.models import Vehiculo
 from drivers.models import Driver
 
 # Create your models here.
 def generar_codigo_manifiesto():
-    return f"RT-{get_random_string(8, allowed_chars='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ')}"
+    return f"RT-{get_random_string(4, allowed_chars='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ')}"
 
 
 class Ruta(models.Model):
@@ -29,7 +28,7 @@ class Ruta(models.Model):
     fecha_fin = models.DateTimeField(null=True, blank=True)
     
     conductor = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, related_name="rutas")
-    vehiculo = models.ForeignKey(Vehiculo, on_delete=models.SET_NULL, null=True, related_name="rutas")
+    vehiculo_usado = models.ForeignKey("vehicles.Vehiculo", on_delete=models.SET_NULL, null=True, blank=True, related_name="rutas_realizadas")
     
     ruta_optimizada = models.JSONField(null=True, blank=True)
     distancia_total_km = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)

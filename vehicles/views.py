@@ -44,3 +44,11 @@ class VehiculosViewSet(viewsets.ModelViewSet):
         vehiculo = serializer.save()
         
         self.handle_imagen(vehiculo, archivo)
+        
+        
+    def perform_update(self, serializer):
+        
+        archivo = self.request.FILES.get("foto")
+        vehiculo = serializer.save()
+        self.handle_imagen(vehiculo, archivo)
+
