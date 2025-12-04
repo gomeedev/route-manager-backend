@@ -22,7 +22,8 @@ class OSMService:
                 'key': OSMService.API_KEY,
                 'q': direccion_completa,
                 'format': 'json',
-                'limit': 1
+                'limit': 1,
+                'countrycodes': 'co',
             }
             
             headers = {

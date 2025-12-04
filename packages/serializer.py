@@ -7,9 +7,16 @@ from .models import Cliente, Localidad, Paquete
 
 
 class ClienteSerializer(serializers.ModelSerializer):
+    
+    total_paquetes = serializers.SerializerMethodField()
+    
     class Meta:
         model = Cliente
         fields = "__all__"
+        
+    
+    def get_total_paquetes(self, objeto):
+        return objeto.paquetes.count()
         
     
 class LocalidadSerializer(serializers.ModelSerializer):
