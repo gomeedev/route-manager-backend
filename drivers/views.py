@@ -31,49 +31,6 @@ class DriverViewSet(viewsets.ModelViewSet):
         return queryset
     
     
-    def update(self, request, *args, **kwargs):
-        driver = self.get_object()
-        
-        # Actualizar datos del conductor (Usuario)
-        conductor_data = request.data.get('conductor_detalle', {})
-        if conductor_data:
-            for key, value in conductor_data.items():
-                setattr(driver.conductor, key, value)
-            driver.conductor.save()
-        
-        # Actualizar estado operativo
-        if 'estado' in request.data:
-            driver.estado = request.data['estado']
-            driver.save()
-        
-        serializer = self.get_serializer(driver)
-        return Response(serializer.data)
-    
-    
-    @action(detail=True, methods=['patch'])
-    def cambiar_estado(self, request, pk=None):
-        """
-        Cambia solo el estado operativo del conductor.
-        Body: {"estado": "Disponible"}
-        """
-        driver = self.get_object()
-        nuevo_estado = request.data.get("estado")
-
-        estados_validos = [choice[0] for choice in Driver.status_driver.choices]
-        if nuevo_estado not in estados_validos:
-            return Response(
-                {"error": "Estado no válido"}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        driver.estado = nuevo_estado
-        driver.save()
-        
-        return Response({
-            "mensaje": f"Estado actualizado a {nuevo_estado}"
-        })
-    
-    
     @action(detail=True, methods=['post'])
     def asignar_vehiculo(self, request, pk=None):
         """
