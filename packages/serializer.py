@@ -54,7 +54,7 @@ class PaqueteSerializer(serializers.ModelSerializer):
         validated_data["lng"] = coordenadas["lng"]
         
         paquete = super().create(validated_data)
-        
+
         return paquete
     
     

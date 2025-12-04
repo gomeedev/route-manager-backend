@@ -203,6 +203,8 @@ SUPABASE_URL = env('SUPABASE_URL')
 SUPABASE_KEY = env('SUPABASE_SERVICE_ROLE_KEY')
 SUPABASE_BUCKET = env('SUPABASE_BUCKET', default='images')
 
+# Geocoding
+GEOCODING_KEY = env('GEOCODING_KEY')
 
 # modelo de AI - Groq
 GROQ_API_KEY = env('GROQ_API_KEY')
