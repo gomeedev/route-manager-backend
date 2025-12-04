@@ -121,6 +121,82 @@ class RutaViewSet(viewsets.ModelViewSet):
             "mensaje": f"{len(paquetes_ids)} paquetes asignados correctamente",
             "total_paquetes": ruta.total_paquetes
         })
+       
+        
+    """Hecho con IA"""
+    @action(detail=False, methods=['post'])
+    def reasignar_paquete_fallido(self, request):
+        """
+        Reasigna un paquete fallido a una ruta pendiente.
+        URL: POST /api/v1/rutas/reasignar_paquete_fallido/
+        Body: {
+            "paquete": 69,
+            "ruta_destino": 77
+        }
+        """
+        paquete_id = request.data.get('paquete')
+        ruta_destino_id = request.data.get('ruta_destino')
+        
+        if not paquete_id or not ruta_destino_id:
+            return Response(
+                {"error": "Debes proporcionar 'paquete' y 'ruta_destino'"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validar paquete
+        try:
+            paquete = Paquete.objects.select_related('ruta').get(id_paquete=paquete_id)
+        except Paquete.DoesNotExist:
+            return Response(
+                {"error": "Paquete no encontrado"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if paquete.estado_paquete != "Fallido":
+            return Response(
+                {"error": "Solo se pueden reasignar paquetes en estado Fallido"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validar ruta origen
+        ruta_origen = paquete.ruta
+        if not ruta_origen or ruta_origen.estado not in ["Completada", "Fallida"]:
+            return Response(
+                {"error": "El paquete debe pertenecer a una ruta Completada o Fallida"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validar ruta destino
+        try:
+            ruta_destino = Ruta.objects.get(id_ruta=ruta_destino_id)
+        except Ruta.DoesNotExist:
+            return Response(
+                {"error": "Ruta destino no encontrada"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if ruta_destino.estado != "Pendiente":
+            return Response(
+                {"error": "La ruta destino debe estar Pendiente"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Reasignar
+        with transaction.atomic():
+            paquete.ruta = ruta_destino
+            paquete.estado_paquete = "Asignado"
+            paquete.orden_entrega = None
+            paquete.save()
+            
+            ruta_destino.total_paquetes += 1
+            ruta_destino.save()
+        
+        return Response({
+            "mensaje": "Paquete reasignado correctamente",
+            "paquete": paquete_id,
+            "ruta_origen": ruta_origen.codigo_manifiesto,
+            "ruta_destino": ruta_destino.codigo_manifiesto
+        })
         
     
     @action(detail=True, methods=['post'])
