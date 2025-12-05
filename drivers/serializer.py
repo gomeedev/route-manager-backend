@@ -102,8 +102,16 @@ class DriverSerializer(serializers.ModelSerializer):
             
             data['base_lat'] = coordenadas['lat']
             data['base_lng'] = coordenadas['lng']
+          
+            
+        if self.instance and self.instance.estado in ["En ruta", "Asignado"]:
+            if 'vehiculo' in data and data['vehiculo'] != self.instance.vehiculo:
+                raise serializers.ValidationError({
+                    "vehiculo": f"No se puede cambiar el vehículo mientras el conductor está {self.instance.estado}"
+                })
             
         return data
+    
     
     
     def update(self, instance, validated_data):
@@ -114,15 +122,16 @@ class DriverSerializer(serializers.ModelSerializer):
         """
         # 1) extraer datos del usuario (si llegaron)
         usuario_data = validated_data.pop("conductor", None)
+        
+        instance = super().update(instance, validated_data)
 
         if usuario_data:
-            usuario = instance.conductor  # la instancia real del Usuario
+            usuario = instance.conductor
             for campo, valor in usuario_data.items():
                 setattr(usuario, campo, valor)
             usuario.save()
 
-        # 2) actualizar el driver (direccion_base, etc.)
-        return super().update(instance, validated_data)
+        return instance
     
     
     def get_ubicacion_base(self, obj):
