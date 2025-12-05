@@ -210,7 +210,6 @@ class RutaMonitoreoSerializer(serializers.ModelSerializer):
     
     
     def get_proximo_paquete(self, objeto):
-        # Obtener el paquete con menor orden_entrega que esté pendiente o en ruta
         proximo = objeto.paquetes.filter(
             estado_paquete__in=["Asignado", "En ruta"]
         ).order_by('orden_entrega').first()

@@ -565,14 +565,11 @@ class RutaViewSet(viewsets.ModelViewSet):
             "polyline": ruta.ruta_optimizada.get("polyline")
         })
         
+        
     @action(detail=True, methods=['get'])
     def proximo_paquete(self, request, pk=None):
-        """
-        Devuelve el próximo paquete pendiente según el orden_entrega.
-        """
         ruta = self.get_object()
         
-        # Buscar el primer paquete pendiente según orden_entrega
         proximo = ruta.paquetes.filter(
             estado_paquete__in=['Pendiente', 'Asignado', 'En ruta']
         ).order_by('orden_entrega').first()
@@ -580,7 +577,11 @@ class RutaViewSet(viewsets.ModelViewSet):
         if proximo:
             serializer = PaqueteSerializer(proximo)
             return Response({
-                'proximo': serializer.data,
+                'proximo': {
+                    **serializer.data,
+                    'lat': float(proximo.lat) if proximo.lat else None,
+                    'lng': float(proximo.lng) if proximo.lng else None
+                },
                 'orden': proximo.orden_entrega,
                 'total_paquetes': ruta.total_paquetes,
                 'entregados': ruta.paquetes_entregados
