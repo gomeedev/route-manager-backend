@@ -746,17 +746,17 @@ class RutaViewSet(viewsets.ModelViewSet):
                 conductor.save()
             
             # 4. Verificar si la ruta está completa
-            entregados_total = ruta.paquetes_entregados + ruta.paquetes_fallidos
-            if entregados_total >= ruta.total_paquetes:
-                ruta.estado = Ruta.EstadoRuta.COMPLETADA
-                ruta.fecha_fin = timezone.now()
-                
-                # Liberar conductor
-                if ruta.conductor:
-                    ruta.conductor.estado = Driver.status_driver.DISPONIBLE
-                    ruta.conductor.save()
+            # entregados_total = ruta.paquetes_entregados + ruta.paquetes_fallidos
+            # if entregados_total >= ruta.total_paquetes:
+            #     ruta.estado = Ruta.EstadoRuta.COMPLETADA
+            #     ruta.fecha_fin = timezone.now()
+            #     
+            #     # Liberar conductor
+            #     if ruta.conductor:
+            #         ruta.conductor.estado = Driver.status_driver.DISPONIBLE
+            #         ruta.conductor.save()
             
-            ruta.save()
+            # ruta.save()
         
         # 5. Buscar próximo paquete
         proximo = ruta.paquetes.filter(
