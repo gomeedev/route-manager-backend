@@ -434,7 +434,7 @@ class RutaViewSet(viewsets.ModelViewSet):
             # Calcular distancia REAL con Haversine
             distancias = []
             for lat, lng, paquete in restantes:
-                dist = haversine_distance(current_lat, current_lng, lat, lng)
+                dist = haversine_distance_vectorized(current_lat, current_lng, lat, lng)
                 distancias.append((dist, lat, lng, paquete))
             
             # Tomar el más cercano (menor distancia en km)
@@ -574,7 +574,7 @@ class RutaViewSet(viewsets.ModelViewSet):
         
         # Buscar el primer paquete pendiente según orden_entrega
         proximo = ruta.paquetes.filter(
-            estado_paquete__in=['Pendiente', 'Asignado']
+            estado_paquete__in=['Pendiente', 'Asignado', 'En ruta']
         ).order_by('orden_entrega').first()
         
         if proximo:
@@ -701,12 +701,9 @@ class RutaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Validar que el paquete esté pendiente
-        if paquete.estado_paquete not in ['Pendiente', 'Asignado']:
-            return Response(
-                {"error": f"El paquete ya está {paquete.estado_paquete}"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Validar que el paquete esté en ruta
+        if paquete.estado_paquete != "En ruta":
+            return Response({"error": "El paquete debe estar En ruta para marcar entrega"}, 400)
         
         with transaction.atomic():
             # 1. Crear registro de entrega
