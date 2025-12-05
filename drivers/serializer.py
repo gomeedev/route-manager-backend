@@ -17,12 +17,36 @@ class ConductorDetalleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
         fields = "__all__"
-        
+
+    
+class ConductorDetalleUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Usuario
+        fields = [
+            "nombre", "apellido", "telefono_movil",
+            "tipo_documento", "documento", "correo", "estado"
+        ]
+
+    def validate_correo(self, value):
+        usuario = self.instance  # puede ser None si no le asignamos instancia
+
+        # Si tenemos instancia y el correo no cambió, permitirlo
+        if usuario and usuario.correo == value:
+            return value
+
+        # Verificar unicidad excluyendo al propio usuario (usar pk es más robusto)
+        if Usuario.objects.filter(correo=value).exclude(pk=getattr(usuario, "pk", None)).exists():
+            raise serializers.ValidationError("Este correo ya está registrado.")
+
+        return value
+
+ 
         
     
 class DriverSerializer(serializers.ModelSerializer):
     
     conductor_detalle = ConductorDetalleSerializer(source="conductor", read_only=True)
+    conductor_update = ConductorDetalleUpdateSerializer(source="conductor", write_only=True, required=False)
     conductor = serializers.PrimaryKeyRelatedField(queryset=Usuario.objects.filter(rol__nombre_rol="driver"))
     
     vehiculo_detalle = VehiculoSerializer(source="vehiculo", read_only=True)
@@ -34,14 +58,36 @@ class DriverSerializer(serializers.ModelSerializer):
     class Meta:
         model = Driver
         fields = (
-            "id_conductor", "conductor", "estado", 
+            "id_conductor", "conductor", "estado",
             "direccion_base", "base_lat", "base_lng",
             "ubicacion_actual_lat", "ubicacion_actual_lng", "direccion_actual",
-            "ultima_actualizacion_ubicacion", 
-            "conductor_detalle", "vehiculo_detalle", "ruta_asignada",
+            "ultima_actualizacion_ubicacion",
+            "conductor_detalle", "vehiculo_detalle", "conductor_update", "ruta_asignada",
             "ubicacion_base"
         )
-        read_only_fields = ("id_conductor", "ubicacion_actual_lat", "ubicacion_actual_lng", "direccion_actual", "ultima_actualizacion_ubicacion")
+        read_only_fields = ("id_conduc1tor", "ubicacion_actual_lat", "ubicacion_actual_lng", "direccion_actual", "ultima_actualizacion_ubicacion")
+        
+    
+    def __init__(self, *args, **kwargs):
+        """
+        Cuando el serializer padre se instancia con una instancia de Driver,
+        asignamos la instancia del usuario al serializer anidado para que
+        validaciones como validate_correo puedan comparar correctamente.
+        """
+        super().__init__(*args, **kwargs)
+        if self.instance is not None:
+            # instance puede ser un Driver o una lista (cuando many=True)
+            driver_instance = self.instance
+            # Si many=True self.instance es una lista/querset: no aplicamos
+            if not isinstance(driver_instance, (list, tuple, set)):
+                try:
+                    usuario_instance = driver_instance.conductor
+                    # asignar la instancia al serializer anidado si existe el campo
+                    if "conductor_update" in self.fields:
+                        self.fields["conductor_update"].instance = usuario_instance
+                except Exception:
+                    pass
+        
         
     def validate(self, data):
         # Solo aplicar geocodificación si se está modificando direccion_base
@@ -58,6 +104,25 @@ class DriverSerializer(serializers.ModelSerializer):
             data['base_lng'] = coordenadas['lng']
             
         return data
+    
+    
+    def update(self, instance, validated_data):
+        """
+        Aplicar manualmente los cambios al Usuario relacionado (si vienen)
+        y luego actualizar el Driver.
+        Nota: validated_data contendrá la clave 'conductor' por el source="conductor".
+        """
+        # 1) extraer datos del usuario (si llegaron)
+        usuario_data = validated_data.pop("conductor", None)
+
+        if usuario_data:
+            usuario = instance.conductor  # la instancia real del Usuario
+            for campo, valor in usuario_data.items():
+                setattr(usuario, campo, valor)
+            usuario.save()
+
+        # 2) actualizar el driver (direccion_base, etc.)
+        return super().update(instance, validated_data)
     
     
     def get_ubicacion_base(self, obj):
