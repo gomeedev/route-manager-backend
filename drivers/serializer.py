@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from config.supabase_client import supabase
+
 from .models import Driver
 from users.models import Usuario
 
@@ -122,14 +124,25 @@ class DriverSerializer(serializers.ModelSerializer):
         """
         # 1) extraer datos del usuario (si llegaron)
         usuario_data = validated_data.pop("conductor", None)
-        
+
         instance = super().update(instance, validated_data)
 
         if usuario_data:
             usuario = instance.conductor
+            correo_anterior = usuario.correo
+            correo_nuevo = usuario_data.get("correo", correo_anterior)
+
+            # Actualizar en MySQL
             for campo, valor in usuario_data.items():
                 setattr(usuario, campo, valor)
             usuario.save()
+
+            # Actualizar en Supabase
+            if correo_nuevo != correo_anterior and usuario.supabase_uid:
+                supabase.auth.admin.update_user_by_id(
+                    usuario.supabase_uid,
+                    {"email": correo_nuevo}
+                )
 
         return instance
     
