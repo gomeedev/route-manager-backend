@@ -28,7 +28,9 @@ from .pdf import generar_pdf_ruta
 from .utils import haversine_distance_vectorized
 
 
-"""Hecho casi completamente por IA"""
+
+
+"""Desarrollado en su mayoria con AI"""
 @extend_schema(tags=["Endpoints rutas"])
 class RutaViewSet(viewsets.ModelViewSet):
     serializer_class = RutaSerializer

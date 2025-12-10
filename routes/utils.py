@@ -1,6 +1,9 @@
 import numpy as np
 from math import radians, sin, cos, sqrt, atan2
 
+
+
+
 def haversine_distance_vectorized(lat1, lng1, lat2_array, lng2_array):
     """
     Versión vectorizada para calcular múltiples distancias a la vez.

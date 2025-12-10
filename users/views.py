@@ -34,8 +34,6 @@ class UsuarioViewSet(viewsets.ModelViewSet):
 
         nombre_archivo = f"foto_perfil/{usuario.supabase_uid}_{timezone.now().strftime('%Y%m%d%H%M%S')}{os.path.splitext(archivo.name)[1]}"
 
-        # Subir a Supabase (sin upsert)
-        # Nota: si ya existe un archivo con ese nombre, deberías eliminarlo antes o renombrarlo
         supabase.storage.from_("images").upload(
             path=nombre_archivo,
             file=archivo.read(),

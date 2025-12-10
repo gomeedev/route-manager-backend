@@ -17,7 +17,7 @@ class AsistenteIAService:
     
     def __init__(self):
         self.client = Groq(api_key=settings.GROQ_API_KEY)
-        self.model = "llama-3.3-70b-versatile" 
+        self.model = "llama-3.3-70b-versatile"
     
     
     def obtener_contexto_datos(self):
@@ -113,7 +113,7 @@ class AsistenteIAService:
         
         # Obtener contexto actualizado
         contexto_datos = self.obtener_contexto_datos()
-        
+            
         # Sistema de instrucciones para Groq
         sistema_prompt = """Eres **Alex**, un asistente y Análista inteligente para un sistema de gestión de rutas de entrega: Route Manager,  en Bogotá, Colombia.
 
@@ -126,38 +126,42 @@ class AsistenteIAService:
         6. Si te preguntan por "el mejor" o "el peor", usa los datos numéricos para determinarlo
         7. NO inventes datos ni hagas suposiciones
         8. Responde en español, tono profesional pero amigable
-
-
         ESTRUCTURA DE DATOS:
         - Clientes: tienen paquetes asociados, cada paquete tiene valor_declarado
         - Paquetes: tienen estados (Pendiente, Asignado, En ruta, Entregado, Fallido)
         - Rutas: tienen conductor, vehículo, distancia, tiempo, estado
         - Vehículos: tienen tipo, estado
         - Conductores: tienen estado (Disponible, Asignado, En ruta, No disponible), vehículo asignado, rutas completadas
-
-        DATOS ACTUALES DEL SISTEMA:
+        DATOS ACTUALES DEL SISTEMA \n:
         """
+        
         sistema_prompt += contexto_datos
         
+        mesagges = [
+            {"role": "system", "content": sistema_prompt}
+        ]
+        
+        mesagges.append({
+            "role": "user",
+            "content": pregunta_usuario
+        })
+        
+        
         try:
-            # Llamar a Groq API
             chat_completion = self.client.chat.completions.create(
-                messages=[
-                    {
-                        "role": "system",
-                        "content": sistema_prompt
-                    },
-                    {
-                        "role": "user",
-                        "content": pregunta_usuario
-                    }
-                ],
+                messages=mesagges,
                 model=self.model,
                 temperature=0.3,
                 max_tokens=1000
             )
             
             respuesta = chat_completion.choices[0].message.content
+            
+            mesagges.append({
+                "role": "assistant",
+                "content": respuesta
+            })
+            
             return {
                 "success": True,
                 "respuesta": respuesta 

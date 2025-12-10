@@ -20,15 +20,6 @@ class ExampleAssistant:
         
 
     def consultar(self, question):
-        
-        tools = [
-            {
-                "type": "function",
-                "name": "obtener_paquetes",
-                "description": "Obtener toda la información disponible para paquetes",
-                "parameters": {},
-            },
-        ]
 
         contexto = f"""
         Eres un asistente de AI llamado Alex, tu objetivo es ayudar a los usuarios a comprender facilmente el stock de la aplicacion.
@@ -47,11 +38,9 @@ class ExampleAssistant:
         })
 
 
-        chat_completion = self.client.responses.create(
+        chat_completion = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
-            tools=tools,
-            tool_choice="auto",
             temperature=0.4
         )
         
@@ -61,16 +50,12 @@ class ExampleAssistant:
         
         messages.append(assistant_message)
         
-        if assistant_message.tool_calls:
-            for  tool_call in assistant_message.tool_calls:
-                pass
-
-"""         response = chat_completion.choices[0].message.content
+        response = chat_completion.choices[0].message.content
 
         messages.append({
             "role": "assistant",
             "content": response
         }) 
         
-        return response """
+        return response
     
