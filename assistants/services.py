@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from packages.models import Cliente, Paquete
 from routes.models import Ruta, EntregaPaquete
+from novedades.models import Novedad
 from vehicles.models import Vehiculo
 from drivers.models import Driver
 
@@ -16,7 +17,7 @@ class AsistenteIAService:
     
     def __init__(self):
         self.client = Groq(api_key=settings.GROQ_API_KEY)
-        self.model = "llama-3.3-70b-versatile" 
+        self.model = "llama-3.3-70b-versatile"
     
     
     def obtener_contexto_datos(self):
@@ -24,130 +25,84 @@ class AsistenteIAService:
         Consulta la base de datos y genera un contexto con estadísticas clave
         """
         
-        # Estadísticas de clientes
-        clientes_stats = Cliente.objects.annotate(
-            total_paquetes=Count('paquetes'),
+        # Clientes: top 20 por valor generado
+        clientes_top_valor = Cliente.objects.annotate(
             total_valor=Sum('paquetes__valor_declarado'),
-            paquetes_entregados=Count('paquetes', filter=Q(paquetes__estado_paquete='Entregado')),
+            total_paquetes=Count('paquetes'),
             paquetes_fallidos=Count('paquetes', filter=Q(paquetes__estado_paquete='Fallido'))
-        ).order_by('-total_valor')[:10]  # Top 10 clientes
-        
-        # Estadísticas de paquetes
-        paquetes_stats = {
-            'total': Paquete.objects.count(),
-            'pendientes': Paquete.objects.filter(estado_paquete='Pendiente').count(),
-            'en_ruta': Paquete.objects.filter(estado_paquete='En ruta').count(),
-            'entregados': Paquete.objects.filter(estado_paquete='Entregado').count(),
-            'fallidos': Paquete.objects.filter(estado_paquete='Fallido').count(),
-            'valor_total': Paquete.objects.aggregate(total=Sum('valor_declarado'))['total'] or Decimal('0'),
-            'por_tipo': list(Paquete.objects.values('tipo_paquete').annotate(cantidad=Count('id_paquete')))
-        }
-        
-        # Estadísticas de rutas
-        rutas_stats = {
-            'total': Ruta.objects.count(),
-            'completadas': Ruta.objects.filter(estado='Completada').count(),
-            'en_curso': Ruta.objects.filter(estado='En ruta').count(),
-            'fallidas': Ruta.objects.filter(estado='Fallida').count(),
-            'distancia_total': Ruta.objects.aggregate(total=Sum('distancia_total_km'))['total'] or Decimal('0'),
-            'tiempo_total': Ruta.objects.aggregate(total=Sum('tiempo_estimado_minutos'))['total'] or 0
-        }
-        
-        # Estadísticas de vehículos
-        vehiculos_stats = {
-            'total': Vehiculo.objects.count(),
-            'disponibles': Vehiculo.objects.filter(estado='Disponible').count(),
-            'en_ruta': Vehiculo.objects.filter(estado='En ruta').count(),
-            'por_tipo': list(Vehiculo.objects.values('tipo').annotate(cantidad=Count('id_vehiculo')))
-        }
-        
-        conductores_stats = Driver.objects.select_related('conductor', 'vehiculo').annotate(
-            rutas_completadas=Count('rutas', filter=Q(rutas__estado='Completada')),
-            rutas_fallidas=Count('rutas', filter=Q(rutas__estado='Fallida')),
-            total_distancia=Sum('rutas__distancia_total_km', filter=Q(rutas__estado='Completada')),
-            paquetes_entregados=Sum('rutas__paquetes_entregados', filter=Q(rutas__estado='Completada'))
-        ).order_by('-rutas_completadas')[:10]  # Top 10 conductores
-        
-        drivers_general = {
-            'total': Driver.objects.count(),
-            'disponibles': Driver.objects.filter(estado='Disponible').count(),
-            'asignados': Driver.objects.filter(estado='Asignado').count(),
-            'en_ruta': Driver.objects.filter(estado='En ruta').count(),
-            'no_disponibles': Driver.objects.filter(estado='No disponible').count()
-        }
-        
-        # Construir contexto en texto
-        contexto = f"""
-        DATOS DEL SISTEMA DE GESTIÓN DE RUTAS - BOGOTÁ, COLOMBIA
+        ).order_by('-total_valor')[:20]
 
-        === CLIENTES (Top 10 por valor generado) ===
-        """
-        for idx, cliente in enumerate(clientes_stats, 1):
-            contexto += f"""
-    {idx}. {cliente.nombre} {cliente.apellido}
-    - Total paquetes: {cliente.total_paquetes}
-    - Valor total generado: ${cliente.total_valor:,.2f} COP
-    - Entregados: {cliente.paquetes_entregados} | Fallidos: {cliente.paquetes_fallidos}
-    - Correo: {cliente.correo}
-    - Teléfono: {cliente.telefono_movil}
-    """
+        # Clientes: top 20 por cantidad de paquetes
+        clientes_top_cantidad = Cliente.objects.annotate(
+            total_paquetes=Count('paquetes')
+        ).order_by('-total_paquetes')[:20]
 
-        contexto += f"""
-=== ESTADÍSTICAS DE PAQUETES ===
-- Total de paquetes: {paquetes_stats['total']}
-- Pendientes: {paquetes_stats['pendientes']}
-- En ruta: {paquetes_stats['en_ruta']}
-- Entregados: {paquetes_stats['entregados']}
-- Fallidos: {paquetes_stats['fallidos']}
-- Valor total declarado: ${paquetes_stats['valor_total']:,.2f} COP
+        # Paquetes: estadísticas generales
+        paquetes_total = Paquete.objects.count()
+        paquetes_pendientes = Paquete.objects.filter(estado_paquete='Pendiente').count()
+        paquetes_entregados = Paquete.objects.filter(estado_paquete='Entregado').count()
+        paquetes_fallidos = Paquete.objects.filter(estado_paquete='Fallido').count()
+        valor_entregado = Paquete.objects.filter(estado_paquete='Entregado').aggregate(
+            total=Sum('valor_declarado')
+        )['total'] or 0
 
-Distribución por tipo:
-"""
-        for tipo in paquetes_stats['por_tipo']:
-            contexto += f"- {tipo['tipo_paquete']}: {tipo['cantidad']} paquetes\n"
+        # Rutas: estadísticas básicas
+        rutas_completadas = Ruta.objects.filter(estado='Completada').count()
+        rutas_totales = Ruta.objects.count()
 
-        contexto += f"""
-=== ESTADÍSTICAS DE RUTAS ===
-- Total rutas: {rutas_stats['total']}
-- Completadas: {rutas_stats['completadas']}
-- En curso: {rutas_stats['en_curso']}
-- Fallidas: {rutas_stats['fallidas']}
-- Distancia total recorrida: {rutas_stats['distancia_total']:,.2f} km
-- Tiempo total estimado: {rutas_stats['tiempo_total']:,} minutos ({rutas_stats['tiempo_total']//60:.0f} horas)
+        # Vehículos: estadísticas simples
+        vehiculos_disponibles = Vehiculo.objects.filter(estado='Disponible').count()
+        vehiculos_totales = Vehiculo.objects.count()
+        vehiculos_por_tipo = list(
+            Vehiculo.objects.values('tipo').annotate(cantidad=Count('id_vehiculo'))
+        )
 
-=== ESTADÍSTICAS DE VEHÍCULOS ===
-- Total vehículos: {vehiculos_stats['total']}
-- Disponibles: {vehiculos_stats['disponibles']}
-- En ruta: {vehiculos_stats['en_ruta']}
+        # Conductores: top 20 por rutas completadas
+        conductores_top = Driver.objects.annotate(
+            rutas_completadas=Count('rutas', filter=Q(rutas__estado='Completada'))
+        ).order_by('-rutas_completadas')[:20]
 
-Distribución por tipo:
-"""
-        for tipo in vehiculos_stats['por_tipo']:
-            contexto += f"- {tipo['tipo']}: {tipo['cantidad']} vehículos\n"
-        
-        contexto += f"""
-=== ESTADÍSTICAS DE CONDUCTORES ===
-- Total conductores: {drivers_general['total']}
-- Disponibles: {drivers_general['disponibles']}
-- Asignados a ruta: {drivers_general['asignados']}
-- En ruta activa: {drivers_general['en_ruta']}
-- No disponibles: {drivers_general['no_disponibles']}
+        # Última novedad registrada
+        ultima_novedad = Novedad.objects.select_related('conductor', 'conductor__conductor').first()
 
-=== CONDUCTORES (Top 10 por rutas completadas) ===
-"""
-        for idx, driver in enumerate(conductores_stats, 1):
-            vehiculo_info = f"{driver.vehiculo.tipo} - {driver.vehiculo.placa}" if driver.vehiculo else "Sin vehículo asignado"
-            contexto += f"""
-{idx}. {driver.conductor.nombre} {driver.conductor.apellido}
-   - Estado: {driver.estado}
-   - Vehículo: {vehiculo_info}
-   - Rutas completadas: {driver.rutas_completadas or 0}
-   - Rutas fallidas: {driver.rutas_fallidas or 0}
-   - Paquetes entregados: {driver.paquetes_entregados or 0}
-   - Distancia total recorrida: {driver.total_distancia or 0:.2f} km
-   - Teléfono: {driver.conductor.telefono_movil}
-"""
-        
+        # Construcción del contexto en formato humano
+        contexto = "Contexto del sistema de rutas\n\n"
+
+        # Info general
+        contexto += f"Paquetes totales: {paquetes_total}\n"
+        contexto += f"Paquetes pendientes: {paquetes_pendientes}\n"
+        contexto += f"Paquetes entregados: {paquetes_entregados}\n"
+        contexto += f"Paquetes fallidos: {paquetes_fallidos}\n"
+        contexto += f"Valor total de paquetes entregados: ${valor_entregado:,.2f} COP\n"
+        contexto += f"Rutas completadas: {rutas_completadas} de {rutas_totales}\n"
+        contexto += f"Vehículos disponibles: {vehiculos_disponibles} de {vehiculos_totales}\n\n"
+
+        contexto += "Vehículos por tipo:\n"
+        for tipo in vehiculos_por_tipo:
+            contexto += f"- {tipo['tipo']}: {tipo['cantidad']}\n"
+
+        # Top clientes por valor
+        contexto += "\nClientes con mayor valor generado:\n"
+        for c in clientes_top_valor:
+            contexto += f"- {c.nombre} {c.apellido}, valor: ${c.total_valor or 0:,.2f}, paquetes: {c.total_paquetes}, fallidos: {c.paquetes_fallidos}\n"
+
+        # Top clientes por cantidad de paquetes
+        contexto += "\nClientes con más paquetes:\n"
+        for c in clientes_top_cantidad:
+            contexto += f"- {c.nombre} {c.apellido}, paquetes: {c.total_paquetes}\n"
+
+        # Top conductores
+        contexto += "\nConductores con más rutas completadas:\n"
+        for d in conductores_top:
+            contexto += f"- {d.conductor.nombre} {d.conductor.apellido}, rutas completadas: {d.rutas_completadas}\n"
+
+        # Última novedad
+        if ultima_novedad:
+            contexto += "\nÚltima novedad registrada:\n"
+            contexto += f"- Conductor: {ultima_novedad.conductor.conductor.nombre} {ultima_novedad.conductor.conductor.apellido}\n"
+            contexto += f"- Tipo: {ultima_novedad.tipo}\n"
+            contexto += f"- Fecha: {ultima_novedad.fecha_novedad}\n"
+
         return contexto
     
     
@@ -158,7 +113,7 @@ Distribución por tipo:
         
         # Obtener contexto actualizado
         contexto_datos = self.obtener_contexto_datos()
-        
+            
         # Sistema de instrucciones para Groq
         sistema_prompt = """Eres **Alex**, un asistente y Análista inteligente para un sistema de gestión de rutas de entrega: Route Manager,  en Bogotá, Colombia.
 
@@ -171,38 +126,42 @@ Distribución por tipo:
         6. Si te preguntan por "el mejor" o "el peor", usa los datos numéricos para determinarlo
         7. NO inventes datos ni hagas suposiciones
         8. Responde en español, tono profesional pero amigable
-
-
         ESTRUCTURA DE DATOS:
         - Clientes: tienen paquetes asociados, cada paquete tiene valor_declarado
         - Paquetes: tienen estados (Pendiente, Asignado, En ruta, Entregado, Fallido)
         - Rutas: tienen conductor, vehículo, distancia, tiempo, estado
         - Vehículos: tienen tipo, estado
         - Conductores: tienen estado (Disponible, Asignado, En ruta, No disponible), vehículo asignado, rutas completadas
-
-        DATOS ACTUALES DEL SISTEMA:
+        DATOS ACTUALES DEL SISTEMA \n:
         """
+        
         sistema_prompt += contexto_datos
         
+        mesagges = [
+            {"role": "system", "content": sistema_prompt}
+        ]
+        
+        mesagges.append({
+            "role": "user",
+            "content": pregunta_usuario
+        })
+        
+        
         try:
-            # Llamar a Groq API
             chat_completion = self.client.chat.completions.create(
-                messages=[
-                    {
-                        "role": "system",
-                        "content": sistema_prompt
-                    },
-                    {
-                        "role": "user",
-                        "content": pregunta_usuario
-                    }
-                ],
+                messages=mesagges,
                 model=self.model,
-                temperature=0.3,  # Respuestas más determinísticas
+                temperature=0.3,
                 max_tokens=1000
             )
             
             respuesta = chat_completion.choices[0].message.content
+            
+            mesagges.append({
+                "role": "assistant",
+                "content": respuesta
+            })
+            
             return {
                 "success": True,
                 "respuesta": respuesta 
@@ -213,3 +172,4 @@ Distribución por tipo:
                 "success": False,
                 "error": f"Error al consultar Groq: {str(e)}"
             }
+            

@@ -36,7 +36,7 @@ class VehiculoSerializer(serializers.ModelSerializer):
     
     
     def get_conductor_asignado(self, objeto):
-        conductor_activo = objeto.drivers.filter(estado__in=["Disponible", "Asignado"]).first()
+        conductor_activo = objeto.drivers.filter(estado__in=["Disponible", "Asignado", "En ruta"]).first()
         if conductor_activo:
             return f"{conductor_activo.conductor.nombre} {conductor_activo.conductor.apellido}"
         else:

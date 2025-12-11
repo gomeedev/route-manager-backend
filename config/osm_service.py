@@ -1,13 +1,15 @@
 # config/osm_service.py
 import requests
 from decimal import Decimal
+from config.settings import base
 import time
 
 
 """ Hecho con IA """
 class OSMService:
     
-    NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+    NOMINATIM_URL = "https://us1.locationiq.com/v1/search"
+    API_KEY = base.GEOCODING_KEY
     OSRM_URL = "https://router.project-osrm.org/route/v1/driving"
     
     @staticmethod
@@ -17,11 +19,11 @@ class OSMService:
         """
         try:
             params = {
+                'key': OSMService.API_KEY,
                 'q': direccion_completa,
                 'format': 'json',
                 'limit': 1,
                 'countrycodes': 'co',
-                'addressdetails': 1
             }
             
             headers = {
@@ -48,11 +50,8 @@ class OSMService:
             return None
             
         except requests.RequestException as e:
-            print(f"Error en geocodificación OSM: {e}")
+            print("Error LocationIQ:", e)
             return None
-        
-        finally:
-            time.sleep(1)
     
     
     @staticmethod

@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema
@@ -35,6 +35,8 @@ class PaquetesViewSet(viewsets.ModelViewSet):
 class ClienteViewSet(viewsets.ModelViewSet):
     serializer_class = ClienteSerializer
     queryset = Cliente.objects.all()
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["nombre", "apellido", "correo"]
     
 
 class LocalidadViewSet(viewsets.ModelViewSet):

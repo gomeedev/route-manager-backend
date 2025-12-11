@@ -9,6 +9,9 @@ from drivers.serializer import DriverSerializer
 from .models import EntregaPaquete, Ruta
 
 
+
+
+"""Desarrollado en su mayoria con AI"""
 class EntregaPaqueteSerializer(serializers.ModelSerializer):
 
     paquete_info = serializers.SerializerMethodField()
@@ -58,9 +61,7 @@ class EntregaPaqueteSerializer(serializers.ModelSerializer):
         # Marcar entrega del paquete
         paquete.fecha_entrega = entrega.fecha_entrega
         paquete.save()
-    
-        
-        
+     
         # Actualizar contadores de la ruta
         ruta = entrega.ruta
         if entrega.estado == "Entregado":
@@ -115,9 +116,7 @@ class RutaSerializer(serializers.ModelSerializer):
             "total_paquetes", "paquetes_entregados", "paquetes_fallidos"
         )
      
-     
-     
-     
+        
     def get_vehiculo_usado_detalle(self, objeto):
         if objeto.vehiculo_usado:
             return {
@@ -210,7 +209,6 @@ class RutaMonitoreoSerializer(serializers.ModelSerializer):
     
     
     def get_proximo_paquete(self, objeto):
-        # Obtener el paquete con menor orden_entrega que esté pendiente o en ruta
         proximo = objeto.paquetes.filter(
             estado_paquete__in=["Asignado", "En ruta"]
         ).order_by('orden_entrega').first()
