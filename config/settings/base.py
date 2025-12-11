@@ -123,15 +123,34 @@ pymysql.install_as_MySQLdb()
 
 
 import dj_database_url
+import os
 
-# Database
-DATABASES = {
-    'default': dj_database_url.config(
-        default=f"mysql://{env('DB_USER')}:{env('DB_PASSWORD')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('DB_NAME')}",
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
-}
+# Database - Priorizar MYSQL_URL de Railway
+mysql_url = os.environ.get('MYSQL_URL')
+
+if mysql_url:
+    # Producción - Railway proporciona MYSQL_URL automáticamente
+    DATABASES = {
+        'default': dj_database_url.parse(mysql_url, conn_max_age=600)
+    }
+else:
+    # Desarrollo local - usar variables individuales
+    try:
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=f"mysql://{env('DB_USER')}:{env('DB_PASSWORD')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('DB_NAME')}",
+                conn_max_age=600,
+                conn_health_checks=True,
+            )
+        }
+    except Exception as e:
+        # Fallback si no hay variables de DB configuradas
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 
 
 
