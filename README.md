@@ -89,10 +89,8 @@ Once the server is running, access the interactive API documentation:
 - **Django Admin**: http://localhost:8000/admin/
 
 
-## Environment Variables
+## Environment Configuration
 The project has _.env_ files for project configuration in production and development, you can safely ignore that configuration and leave only one global _.env_.
-
-### Environment Configuration
 
 The project supports multiple environments through separate settings files:
 
@@ -110,6 +108,7 @@ ENVIRONMENT=production
 ```
 
 
+### Environment Variables
 Create _.env_ file in the root directory with the following environment variables:
 
 **.env**
@@ -186,5 +185,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
   <p><strong>Academic project created with ❤️ for Colombian logistics companies</strong></p>
-  <p><em>Last update: [11/12/2024]</em></p>
+  <p><em>Last update: [11/12/2025]</em></p>
 </div>
