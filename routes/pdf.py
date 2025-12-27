@@ -109,14 +109,14 @@ class EncabezadoPaginado:
         canvas.restoreState()
 
 
-def generar_pdf_ruta(ruta, logo_path="static/images/logo_sena.png"):
+def generar_pdf_ruta(ruta, logo_path="static/images/logo.png"):
     """
     Genera PDF con toda la informacion de la ruta
     Retorna buffer con el PDF generado
     
     Parametros:
     - ruta: Objeto de la ruta con toda su informacion
-    - logo_path: Ruta local al logo del SENA (por defecto: static/images/logo_sena.png)
+    - logo_path: Ruta local al logo del sistema (por defecto: static/images/logo.png)
     """
 
     # Crear buffer en memoria

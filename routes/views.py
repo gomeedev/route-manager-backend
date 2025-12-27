@@ -895,7 +895,7 @@ class RutaViewSet(viewsets.ModelViewSet):
             )
 
         # Generar PDF en memoria
-        buffer = generar_pdf_ruta(ruta, logo_path="static/images/logo_sena.png")
+        buffer = generar_pdf_ruta(ruta, logo_path="static/images/logo.png")
         pdf_bytes = buffer.getvalue()
 
         # Enviar el PDF directo al frontend
